@@ -1,0 +1,75 @@
+$colorname: "Residen";
+
+$primary: #eed382;
+$primary-20: #fff7e2;
+$primary-40: #e8ddbd;
+$primary-60: #ebdbaa;
+$primary-80: #ecd796;
+$primary-100: #eed382;
+
+$secondary: #63382c;
+$secondary-20: #cbc2c0;
+$secondary-80: #7d5b51;
+$secondary-100: #63382c;
+
+$tertiary: #cb7d61;
+$tertiary-20: #e0d0ca;
+$tertiary-40: #dabbb0;
+$tertiary-80: #d0927c;
+$tertiary-100: #cb7d61;
+
+$link-color: #63382c;
+$submit-button: #eed382;
+$background: #f9f9f9;
+
+$darkest: $secondary-100;
+$darker: $tertiary-100;
+$dark: $tertiary-80;
+$mid: $tertiary-80;
+$midpale: $tertiary-100;
+$pale: $primary-80;
+$midpalepale: $primary-60;
+$palepale: $primary-80;
+$palepurple: #8588e0;
+$paler: $primary-80;
+$midnightblue: $secondary-80;
+$white: #ffffff;
+
+@import "utilities/default_variables";
+
+// Import Bootstrap 4 SCSS Files before doing anything
+// This gets replaced in gulp now -- do not touch
+// bs4import
+
+@import "../color_base";
+
+// Additional theme-specific styles
+.btn-primary {
+    background-color: $tertiary-100;
+    border-color: $tertiary-100;
+    color: $white;
+
+    &:hover,
+    &:focus,
+    &:active {
+        background-color: darken($tertiary-100, 10%);
+        border-color: darken($tertiary-100, 10%);
+        color: $white;
+    }
+}
+
+.btn-secondary {
+    background-color: $primary-100;
+    border-color: $primary-100;
+    color: $secondary-100;
+
+    &:hover,
+    &:focus,
+    &:active {
+        background-color: darken($primary-100, 10%);
+        border-color: darken($primary-100, 10%);
+        color: $secondary-100;
+    }
+}
+
+// You can add more custom styles here
