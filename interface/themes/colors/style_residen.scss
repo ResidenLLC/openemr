@@ -34,16 +34,12 @@ $palepurple: #8588e0;
 $paler: $primary-80;
 $midnightblue: $secondary-80;
 $white: #ffffff;
+$blue: $darker;
 
 @import "utilities/default_variables";
 
-// Import Bootstrap 4 SCSS Files before doing anything
-// This gets replaced in gulp now -- do not touch
-// bs4import
-
 @import "../color_base";
 
-// Additional theme-specific styles
 .btn-primary {
     background-color: $tertiary-100;
     border-color: $tertiary-100;
@@ -72,4 +68,95 @@ $white: #ffffff;
     }
 }
 
-// You can add more custom styles here
+.btn-primary {
+    background-color: $tertiary-100;
+    border-color: $tertiary-100;
+    color: $white;
+
+    &:hover,
+    &:focus,
+    &:active {
+        background-color: darken($tertiary-100, 10%);
+        border-color: darken($tertiary-100, 10%);
+        color: $white;
+    }
+}
+
+.btn-secondary {
+    background-color: $primary-100;
+    border-color: $primary-100;
+    color: $secondary-100;
+
+    &:hover,
+    &:focus,
+    &:active {
+        background-color: darken($primary-100, 10%);
+        border-color: darken($primary-100, 10%);
+        color: $secondary-100;
+    }
+}
+
+.btn:disabled,
+.btn.disabled {
+    background-color: $secondary-20;
+    border-color: $secondary-20;
+    color: $secondary-80;
+    opacity: 0.8;
+
+    &:hover {
+        background-color: $secondary-20;
+        border-color: $secondary-20;
+        color: $secondary-80;
+    }
+}
+
+.btn-primary:disabled,
+.btn-primary.disabled {
+    background-color: $tertiary-40;
+    border-color: $tertiary-40;
+    color: $secondary-100;
+}
+
+.btn-secondary:disabled,
+.btn-secondary.disabled {
+    background-color: $primary-40;
+    border-color: $primary-40;
+    color: $secondary-80;
+}
+
+.dropdown-menu {
+    background-color: $primary-20;
+    border-color: $primary-60;
+}
+
+.dropdown-item {
+    color: $secondary-100;
+
+    &:hover,
+    &:focus {
+        background-color: $primary-40;
+        color: $secondary-100;
+    }
+}
+
+.dropdown-item.active,
+.dropdown-item:active {
+    background-color: $tertiary-100;
+    color: $white;
+}
+
+.dropdown-item.disabled,
+.dropdown-item:disabled,
+.menuLabel.menuDisabled {
+    color: $secondary-80 !important;
+    background-color: transparent !important;
+    opacity: 0.8;
+}
+
+.dropdown-divider {
+    border-top-color: $primary-60;
+}
+
+.dropdown-header {
+    color: $secondary-80;
+}
