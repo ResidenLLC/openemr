@@ -89,6 +89,8 @@ COPY setup.php .
 COPY admin.php .
 
 #go
+RUN chown apache:apache setup.php
+RUN chown apache:apache admin.php
 CMD [ "./openemr.sh" ]
 
 EXPOSE 80 443
