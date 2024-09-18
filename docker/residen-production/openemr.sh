@@ -76,7 +76,7 @@ if [ "$SWARM_MODE" == "yes" ]; then
     set -o noclobber
     { > /var/www/localhost/htdocs/openemr/sites/docker-leader ; } &> /dev/null || AUTHORITY=no
     set +o noclobber
-    
+
     if [ "$AUTHORITY" == "no" ] &&
        [ ! -f /var/www/localhost/htdocs/openemr/sites/docker-completed ]; then
         while swarm_wait; do
@@ -85,7 +85,7 @@ if [ "$SWARM_MODE" == "yes" ]; then
         done
     fi
 
-    if [ "$AUTHORITY" == "yes" ]; then       
+    if [ "$AUTHORITY" == "yes" ]; then
         touch /var/www/localhost/htdocs/openemr/sites/docker-initiated
         if [ ! -f /etc/ssl/openssl.cnf ]; then
             # Restore the emptied /etc/ssl directory
@@ -232,7 +232,7 @@ if [ "$AUTHORITY" == "yes" ]; then
     fi
 fi
 
-if 
+if
    [ "$AUTHORITY" == "yes" ] &&
    [ "$CONFIG" == "1" ] &&
    [ "$MANUAL_SETUP" != "yes" ]; then
@@ -362,13 +362,13 @@ if
 
             echo "Removing remaining setup scripts"
             #remove all setup scripts
-            rm -f admin.php
-            rm -f acl_upgrade.php
-            rm -f setup.php
-            rm -f sql_patch.php
-            rm -f sql_upgrade.php
-            rm -f ippf_upgrade.php
-            rm -f auto_configure.php
+            #rm -f admin.php
+            #rm -f acl_upgrade.php
+            #rm -f setup.php
+            #rm -f sql_patch.php
+            #rm -f sql_upgrade.php
+            #rm -f ippf_upgrade.php
+            #rm -f auto_configure.php
             echo "Setup scripts removed, we should be ready to go now!"
         fi
     fi
