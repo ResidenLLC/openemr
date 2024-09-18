@@ -1,0 +1,162 @@
+$colorname: "Residen";
+
+$primary: #eed382;
+$primary-20: #fff7e2;
+$primary-40: #e8ddbd;
+$primary-60: #ebdbaa;
+$primary-80: #ecd796;
+$primary-100: #eed382;
+
+$secondary: #63382c;
+$secondary-20: #cbc2c0;
+$secondary-80: #7d5b51;
+$secondary-100: #63382c;
+
+$tertiary: #cb7d61;
+$tertiary-20: #e0d0ca;
+$tertiary-40: #dabbb0;
+$tertiary-80: #d0927c;
+$tertiary-100: #cb7d61;
+
+$link-color: #63382c;
+$submit-button: #eed382;
+$background: #f9f9f9;
+
+$darkest: $secondary-100;
+$darker: $tertiary-100;
+$dark: $tertiary-80;
+$mid: $tertiary-80;
+$midpale: $tertiary-100;
+$pale: $primary-80;
+$midpalepale: $primary-60;
+$palepale: $primary-80;
+$palepurple: #8588e0;
+$paler: $primary-80;
+$midnightblue: $secondary-80;
+$white: #ffffff;
+$blue: $darker;
+
+@import "utilities/default_variables";
+
+@import "../color_base";
+
+.btn-primary {
+    background-color: $tertiary-100;
+    border-color: $tertiary-100;
+    color: $white;
+
+    &:hover,
+    &:focus,
+    &:active {
+        background-color: darken($tertiary-100, 10%);
+        border-color: darken($tertiary-100, 10%);
+        color: $white;
+    }
+}
+
+.btn-secondary {
+    background-color: $primary-100;
+    border-color: $primary-100;
+    color: $secondary-100;
+
+    &:hover,
+    &:focus,
+    &:active {
+        background-color: darken($primary-100, 10%);
+        border-color: darken($primary-100, 10%);
+        color: $secondary-100;
+    }
+}
+
+.btn-primary {
+    background-color: $tertiary-100;
+    border-color: $tertiary-100;
+    color: $white;
+
+    &:hover,
+    &:focus,
+    &:active {
+        background-color: darken($tertiary-100, 10%);
+        border-color: darken($tertiary-100, 10%);
+        color: $white;
+    }
+}
+
+.btn-secondary {
+    background-color: $primary-100;
+    border-color: $primary-100;
+    color: $secondary-100;
+
+    &:hover,
+    &:focus,
+    &:active {
+        background-color: darken($primary-100, 10%);
+        border-color: darken($primary-100, 10%);
+        color: $secondary-100;
+    }
+}
+
+.btn:disabled,
+.btn.disabled {
+    background-color: $secondary-20;
+    border-color: $secondary-20;
+    color: $secondary-80;
+    opacity: 0.8;
+
+    &:hover {
+        background-color: $secondary-20;
+        border-color: $secondary-20;
+        color: $secondary-80;
+    }
+}
+
+.btn-primary:disabled,
+.btn-primary.disabled {
+    background-color: $tertiary-40;
+    border-color: $tertiary-40;
+    color: $secondary-100;
+}
+
+.btn-secondary:disabled,
+.btn-secondary.disabled {
+    background-color: $primary-40;
+    border-color: $primary-40;
+    color: $secondary-80;
+}
+
+.dropdown-menu {
+    background-color: $primary-20;
+    border-color: $primary-60;
+}
+
+.dropdown-item {
+    color: $secondary-100;
+
+    &:hover,
+    &:focus {
+        background-color: $primary-40;
+        color: $secondary-100;
+    }
+}
+
+.dropdown-item.active,
+.dropdown-item:active {
+    background-color: $tertiary-100;
+    color: $white;
+}
+
+.dropdown-item.disabled,
+.dropdown-item:disabled,
+.menuLabel.menuDisabled {
+    color: $secondary-80 !important;
+    background-color: transparent !important;
+    opacity: 0.8;
+}
+
+.dropdown-divider {
+    border-top-color: $primary-60;
+}
+
+.dropdown-header {
+    color: $secondary-80;
+}
