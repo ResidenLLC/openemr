@@ -118,7 +118,7 @@ $db_sms_msg['message'] = $MESSAGE;
     <!DOCTYPE html>
     <html lang="eng">
     <head>
-        <title><?php echo xlt("Notifications") ?></title>
+        <title><?php echo xlt("SMS Notification") ?></title>
     </head>
     <style>
         html {
@@ -288,8 +288,6 @@ function cron_UpdateEntry($type, $pid, $pc_eid, $recur = ''): int
 
     if ($type == 'SMS') {
         $query .= " pc_sendalertsms='YES', pc_apptstatus='SMS' ";
-    } elseif ($type == 'EMAIL') {
-        $query .= " pc_sendalertemail='YES', pc_apptstatus='EMAIL' ";
     } else {
         $query .= " pc_sendalertemail='YES' ";
     }
@@ -308,11 +306,8 @@ function cron_UpdateEntry($type, $pid, $pc_eid, $recur = ''): int
  */
 function cron_GetAlertPatientData(): array
 {
-    global $SMS_NOTIFICATION_HOUR, $TYPE;
+    global $SMS_NOTIFICATION_HOUR;
     $where = " AND (p.hipaa_allowsms='YES' AND p.phone_cell<>'' AND e.pc_sendalertsms != 'YES' AND e.pc_apptstatus != 'x')";
-    if ($TYPE == 'EMAIL') {
-        $where = " AND (p.hipaa_allowemail='YES' AND p.email<>'' AND e.pc_sendalertemail != 'YES' AND e.pc_apptstatus != 'x')";
-    }
     $adj_date = date("h") + $SMS_NOTIFICATION_HOUR;
     $check_date = date("Y-m-d", mktime($adj_date, 0, 0, date("m"), date("d"), date("Y")));
     $patient_array = fetchEvents($check_date, $check_date, $where, 'u.lname,pc_startTime,p.lname');
