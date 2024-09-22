@@ -188,7 +188,7 @@ $GLOBALS_METADATA = array(
             // Note: Do not change this as it is only for theme defaults and adding themes here does nothing
             xl('General Theme') . '*',
             'css',
-            'style_light.css',
+            'style_residen.css',
             xl('Pick a general theme (need to logout/login after changing this setting).')
         ),
         'hide_dashboard_cards' => array(
