@@ -45,7 +45,7 @@
     "eslint-plugin-import": "2.28.1",
     "eslint-plugin-jest": "27.4.0",
     "glob": "10.3.4",
-    "gulp": "^5.0.0",
+    "gulp": "^4.0.2",
     "gulp-append-prepend": "1.0.9",
     "gulp-csso": "4.0.1",
     "gulp-dart-sass": "1.1.0",
