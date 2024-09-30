@@ -221,7 +221,7 @@ if (empty($SBCODES)) {
     array_splice($SBCODES, $lines * 1 + $page_start_index, 0, '*C|');
 }
 
-$lheight = sprintf('%d', ($page_height - $header_height) *1.5 / $lines_per_page);
+$lheight = sprintf('%d', ($page_height - $header_height) *1.6 / $lines_per_page);
 
 // Common HTML Header information
 
