@@ -35,7 +35,7 @@ function genColumn($ix)
         $a = explode('|', $SBCODES[$ix], 2);
         $cmd = trim($a[0]);
         if ($cmd == '*C') { // column break
-            return++$ix;
+            return ++$ix;
         }
 
         if ($cmd == '*B') { // Borderless and empty
@@ -125,7 +125,7 @@ if (file_exists("../../custom/fee_sheet_codes.php")) {
 }
 
 // TBD: Move these to globals.php, or make them user-specific.
-$fontsize = 7;
+$fontsize = 14;
 $page_height = 700;
 
 $padding = 0;
@@ -146,7 +146,7 @@ if (empty($SBCODES)) {
 
     // Create entries based on the fee_sheet_options table.
     $res = sqlStatement("SELECT * FROM fee_sheet_options " .
-            "ORDER BY fs_category, fs_option");
+        "ORDER BY fs_category, fs_option");
     while ($row = sqlFetchArray($res)) {
         $fs_category = $row['fs_category'];
         $fs_option = $row['fs_option'];
@@ -161,12 +161,12 @@ if (empty($SBCODES)) {
 
     // Create entries based on categories defined within the codes.
     $pres = sqlStatement("SELECT option_id, title FROM list_options " .
-            "WHERE list_id = 'superbill' AND activity = 1 ORDER BY seq");
+        "WHERE list_id = 'superbill' AND activity = 1 ORDER BY seq");
     while ($prow = sqlFetchArray($pres)) {
         $SBCODES[] = '*G|' . xl_list_label($prow['title']);
         $res = sqlStatement("SELECT code_type, code, code_text FROM codes " .
-                "WHERE superbill = ? AND active = 1 " .
-                "ORDER BY code_text", array($prow['option_id']));
+            "WHERE superbill = ? AND active = 1 " .
+            "ORDER BY code_text", array($prow['option_id']));
         while ($row = sqlFetchArray($res)) {
             $SBCODES[] = $row['code'] . '|' . $row['code_text'];
         }
@@ -176,10 +176,10 @@ if (empty($SBCODES)) {
     if ($GLOBALS['sell_non_drug_products']) {
         $SBCODES[] = '*G|' . xl('Products');
         $tres = sqlStatement("SELECT " .
-                "dt.drug_id, dt.selector, d.name, d.ndc_number " .
-                "FROM drug_templates AS dt, drugs AS d WHERE " .
-                "d.drug_id = dt.drug_id AND d.active = 1 " .
-                "ORDER BY d.name, dt.selector, dt.drug_id");
+            "dt.drug_id, dt.selector, d.name, d.ndc_number " .
+            "FROM drug_templates AS dt, drugs AS d WHERE " .
+            "d.drug_id = dt.drug_id AND d.active = 1 " .
+            "ORDER BY d.name, dt.selector, dt.drug_id");
         while ($trow = sqlFetchArray($tres)) {
             $tmp = $trow['selector'];
             if ($trow['name'] !== $trow['selector']) {
@@ -187,7 +187,7 @@ if (empty($SBCODES)) {
             }
 
             $prodcode = empty($trow['ndc_number']) ? ('(' . $trow['drug_id'] . ')') :
-                    $trow['ndc_number'];
+                $trow['ndc_number'];
             $SBCODES[] = "$prodcode|$tmp";
         }
     }
@@ -221,7 +221,7 @@ if (empty($SBCODES)) {
     array_splice($SBCODES, $lines * 1 + $page_start_index, 0, '*C|');
 }
 
-$lheight = sprintf('%d', ($page_height - $header_height) / $lines_per_page);
+$lheight = sprintf('%d', ($page_height - $header_height) *1.6 / $lines_per_page);
 
 // Common HTML Header information
 
@@ -290,14 +290,14 @@ margin: 0 0 8pt 0;
  width: 33%;
  vertical-align: top;
  text-align: left;
- font-size: 14pt;
+ font-size: 16pt;
  font-weight: bold;
 }
 .ftitlecell2 {
  width: 33%;
  vertical-align: top;
  text-align: right;
- font-size: 9pt;
+ font-size: 14pt;
 }
 .ftitlecellm {
  width: 34%;
@@ -310,6 +310,17 @@ margin: 0 0 8pt 0;
 div.pagebreak {
 page-break-after: always;
 height: " . attr($page_height) . "pt;
+}
+@media print {
+    @page {
+    }
+    html, body {
+
+    }
+    .fsgroup, .fshead, .fscode {
+        height: auto;
+    }
+
 }
 </style>";
 
@@ -382,7 +393,7 @@ foreach ($pid_list as $pid) {
         $referDoc = getUserIDInfo($patdata['ref_providerID']);
     }
 
-// This tracks our position in the $SBCODES array.
+    // This tracks our position in the $SBCODES array.
     $cindex = 0;
 
     while (--$pages >= 0) {
@@ -445,11 +456,11 @@ foreach ($pid_list as $pid) {
             $encdata = false;
             if ($form_fill && $encounter) {
                 $query = "SELECT fe.reason, fe.date, u.fname, u.mname, u.lname, u.username " .
-                        "FROM forms AS f " .
-                        "JOIN form_encounter AS fe ON fe.id = f.form_id " .
-                        "LEFT JOIN users AS u ON u.username = f.user " .
-                        "WHERE f.pid = ? AND f.encounter = ? AND f.formdir = 'newpatient' AND f.deleted = 0 " .
-                        "ORDER BY f.id LIMIT 1";
+                    "FROM forms AS f " .
+                    "JOIN form_encounter AS fe ON fe.id = f.form_id " .
+                    "LEFT JOIN users AS u ON u.username = f.user " .
+                    "WHERE f.pid = ? AND f.encounter = ? AND f.formdir = 'newpatient' AND f.deleted = 0 " .
+                    "ORDER BY f.id LIMIT 1";
                 $encdata = sqlQuery($query, array($pid, $encounter));
                 if (!empty($encdata['username'])) {
                     $html .= $encdata['fname'] . ' ' . $encdata['mname'] . ' ' . $encdata['lname'];
@@ -479,8 +490,8 @@ foreach ($pid_list as $pid) {
                 if ($form_fill) {
                     foreach (array('primary', 'secondary', 'tertiary') as $instype) {
                         $query = "SELECT * FROM insurance_data WHERE " .
-                                "pid = ? AND type = ? " .
-                                "ORDER BY date DESC LIMIT 1";
+                            "pid = ? AND type = ? " .
+                            "ORDER BY date DESC LIMIT 1";
                         $row = sqlQuery($query, array($pid, $instype));
                         if (!empty($row['provider'])) {
                             $icobj = new InsuranceCompany($row['provider']);
