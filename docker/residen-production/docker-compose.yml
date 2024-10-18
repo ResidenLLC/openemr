@@ -27,6 +27,7 @@ volumes:
       type: none
       o: bind
       device: /home/ubuntu/openemr_logs
+ #sites
   sitevolume:
     driver_opts:
       type: none
