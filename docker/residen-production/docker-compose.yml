@@ -11,7 +11,16 @@ services:
       - logvolume01:/var/log
       - sitevolume:/var/www/localhost/htdocs/openemr/sites
     env_file:
-      - .app_env
+      - .env
+  mysql:
+    restart: always
+    image: mariadb:10.11
+    container_name: openemr_db
+    command: ['mysqld','--character-set-server=utf8mb4']
+    volumes:
+      - /home/ubuntu/openemr_data:/var/lib/mysql
+    env_file:
+      - .env
 volumes:
   logvolume01:
     driver_opts:
@@ -23,3 +32,4 @@ volumes:
       type: none
       o: bind
       device: /home/ubuntu/openemr_sites
+
