@@ -41,9 +41,9 @@ class RCFaxClient extends AppDispatch
         $this->uriDir = $GLOBALS['OE_SITE_WEBROOT'];
         $this->cacheDir = $GLOBALS['OE_SITE_DIR'] . '/documents/logs_and_misc/_cache';
         $this->credentials = $this->getCredentials();
-        $this->portalUrl = $this->credentials['production'] ? "https://service.ringcentral.com/" : "https://service.devtest.ringcentral.com/";
-        $this->serverUrl = $this->credentials['production'] ? "https://platform.ringcentral.com" : "https://platform.devtest.ringcentral.com";
-        $this->redirectUrl = $this->credentials['redirect_url'];
+        $this->portalUrl = $this->credentials['production'] ?? null ? "https://service.ringcentral.com/" : "https://service.devtest.ringcentral.com/";
+        $this->serverUrl = $this->credentials['production'] ?? null ? "https://platform.ringcentral.com" : "https://platform.devtest.ringcentral.com";
+        $this->redirectUrl = $this->credentials['redirect_url'] ?? null;
         $this->initializeSDK();
         parent::__construct();
     }
@@ -54,8 +54,8 @@ class RCFaxClient extends AppDispatch
     public function authenticateRingCentral(): int|string
     {
         try {
-            $authback = $this->cacheDir . DIRECTORY_SEPARATOR . 'platform.json';
-            $cachedAuth = $this->getCachedAuth($authback);
+            $authBack = $this->cacheDir . DIRECTORY_SEPARATOR . 'platform.json';
+            $cachedAuth = $this->getCachedAuth($authBack);
             if (!empty($cachedAuth['refresh_token'])) {
                 $this->platform->auth()->setData($cachedAuth);
             }
@@ -71,15 +71,15 @@ class RCFaxClient extends AppDispatch
     }
 
     /**
-     * @param string $authback
+     * @param string $authBack
      * @return array
      */
-    private function getCachedAuth(string $authback): array
+    private function getCachedAuth(string $authBack): array
     {
-        if (file_exists($authback)) {
-            $cachedAuth = file_get_contents($authback);
+        if (file_exists($authBack)) {
+            $cachedAuth = file_get_contents($authBack);
             $cachedAuth = json_decode($this->crypto->decryptStandard($cachedAuth), true);
-            unlink($authback);
+            unlink($authBack);
 // Remove cached file after reading
             return $cachedAuth;
         }
@@ -159,11 +159,7 @@ class RCFaxClient extends AppDispatch
                 // No credentials set
             }
         }
-        $error = $this->authenticateRingCentral();
-        if (is_numeric($error)) {
-            return $error;
-        }
-        return $error;
+        return $this->authenticateRingCentral();
     }
 
     /**

@@ -23,7 +23,8 @@ class LogDataInsert
     {
         $sql = "INSERT INTO prescriptions SET ";
         $sql .= "active = ?, ";
-        $sql .= "date_added = NOW(), ";
+        $sql .= "date_added = ?, ";
+        $sql .= "datetime = NOW(), ";
         $sql .= "patient_id = ?, ";
         $sql .= "provider_id = ?, ";
         $sql .= "drug = ?, ";
@@ -38,6 +39,7 @@ class LogDataInsert
         try {
             sqlInsert($sql, [
                 $insertdata['active'],
+                $insertdata['date_added'],
                 $insertdata['patient_id'],
                 $insertdata['user_id'],
                 $insertdata['drug'],
@@ -48,6 +50,43 @@ class LogDataInsert
                 $insertdata['rxnorm_drugcode'],
                 $insertdata['provider_id'],
                 $insertdata['prescriptionguid']
+            ]);
+        } catch (Exception $e) {
+            return $e->getMessage();
+        }
+    }
+
+    public function updatePrescriptions($updatedata)
+    {
+        $sql = "UPDATE prescriptions SET ";
+        $sql .= "active = ?, ";
+        $sql .= "date_added = ?, ";
+        $sql .= "datetime = NOW(), ";
+        $sql .= "patient_id = ?, ";
+        $sql .= "provider_id = ?, ";
+        $sql .= "drug = ?, ";
+        $sql .= "quantity = ?, ";
+        $sql .= "refills = ?, ";
+        $sql .= "substitute = ?, ";
+        $sql .= "note = ?, ";
+        $sql .= "rxnorm_drugcode = ?, ";
+        $sql .= "external_id = ? ";
+        $sql .= "WHERE indication = ?";
+
+        try {
+            sqlQuery($sql, [
+                $updatedata['active'],
+                $updatedata['date_added'],
+                $updatedata['patient_id'],
+                $updatedata['user_id'],
+                $updatedata['drug'],
+                $updatedata['quantity'],
+                $updatedata['refills'],
+                $updatedata['substitute'],
+                $updatedata['note'],
+                $updatedata['rxnorm_drugcode'],
+                $updatedata['provider_id'],
+                $updatedata['prescriptionguid']
             ]);
         } catch (Exception $e) {
             return $e->getMessage();

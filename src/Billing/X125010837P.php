@@ -663,7 +663,7 @@ class X125010837P
         $proccount = $claim->procCount();
         $clm_total_charges = 0;
         for ($prockey = 0; $prockey < $proccount; ++$prockey) {
-            $clm_total_charges += $claim->cptCharges($prockey);
+            $clm_total_charges += floatval($claim->cptCharges($prockey));
         }
         if (!$clm_total_charges) {
             $log .= "*** This claim has no charges!\n";
@@ -1223,7 +1223,7 @@ class X125010837P
             if (
                 !(
                     (strlen($claim->insuredZip($ins)) == 5)
-                    || (strlen($claim->insuredZip($ins) == 9))
+                    || (strlen($claim->insuredZip($ins)) == 9)
                 )
             ) {
                 $log .= "*** Other insco insured zip is not 5 or 9 digits.\n";
@@ -1285,7 +1285,7 @@ class X125010837P
             if (
                 !(
                     (strlen($claim->payerZip($ins)) == 5)
-                    || (strlen($claim->payerZip() == 9))
+                    || (strlen($claim->payerZip($ins)) == 9)
                 )
             ) {
                 $log .= "*** Other payer zip is not 5 or 9 digits.\n";

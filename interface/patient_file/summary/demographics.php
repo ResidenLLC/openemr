@@ -447,64 +447,18 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
         // called from stats.php.
         //
         function editScripts(url) {
-            var AddScript = function () {
-                var __this = $(this);
-                __this.find("#clearButton").css("display", "");
-                __this.find("#backButton").css("display", "");
-                __this.find("#addButton").css("display", "none");
-
-                var iam = top.frames.editScripts;
-                iam.location.href = '<?php echo $GLOBALS['webroot'] ?>/controller.php?prescription&edit&id=0&pid=' + <?php echo js_url($pid); ?>;
-            };
-            var ListScripts = function () {
-                var __this = $(this);
-                __this.find("#clearButton").css("display", "none");
-                __this.find("#backButton").css("display", "none");
-                __this.find("#addButton").css("display", "");
-                var iam = top.frames.editScripts
-                iam.location.href = '<?php echo $GLOBALS['webroot'] ?>/controller.php?prescription&list&id=' + <?php echo js_url($pid); ?>;
-            };
 
             let title = <?php echo xlj('Prescriptions'); ?>;
             let w = 960; // for weno width
 
             dlgopen(url, 'editScripts', w, 400, '', '', {
-                buttons: [{
-                    text: <?php echo xlj('Add'); ?>,
-                    close: false,
-                    id: 'addButton',
-                    class: 'btn-primary btn-sm',
-                    click: AddScript
-                },
-                    {
-                        text: <?php echo xlj('Clear'); ?>,
-                        close: false,
-                        id: 'clearButton',
-                        style: 'display:none;',
-                        class: 'btn-primary btn-sm',
-                        click: AddScript
-                    },
-                    {
-                        text: <?php echo xlj('Back'); ?>,
-                        close: false,
-                        id: 'backButton',
-                        style: 'display:none;',
-                        class: 'btn-primary btn-sm',
-                        click: ListScripts
-                    },
-                    {
-                        text: <?php echo xlj('Quit'); ?>,
-                        close: true,
-                        id: 'doneButton',
-                        class: 'btn-secondary btn-sm'
-                    }
-                ],
-                onClosed: 'refreshme',
+                resolvePromiseOn: 'close',
                 allowResize: true,
                 allowDrag: true,
                 dialogId: 'editscripts',
                 type: 'iframe'
-            });
+            })
+            .then(() => refreshme());
             return false;
         }
 
@@ -1207,14 +1161,14 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                     $viewArgs['content'] = ob_get_contents();
                     ob_end_clean();
 
-                    echo "<div class=\"col\">";
+                    echo "<div class='col m-0 p-0 mx-1'>";
                     echo $t->render('patient/card/rx.html.twig', $viewArgs); // render core prescription card
                     echo "</div>";
                 endif;
                 ?>
             </div>
             <div class="row">
-                <div class="col-md-8">
+                <div class="col-md-8 px-2">
                     <?php
                     if ($deceased > 0) :
                         echo $twig->getTwig()->render('patient/partials/deceased.html.twig', [
@@ -1458,7 +1412,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                     endwhile; // end while
                     ?>
                 </div> <!-- end left column div -->
-                <div class="col-md-4">
+                <div class="col-md-4 px-2">
                     <!-- start right column div -->
                     <?php
                     $_extAccess = [

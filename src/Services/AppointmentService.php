@@ -33,6 +33,8 @@ class AppointmentService extends BaseService
     const PRACTITIONER_TABLE = "users";
     const FACILITY_TABLE = "facility";
 
+    const CATEGORY_CONSTANT_NO_SHOW = 'no_show';
+
     /**
      * @var EncounterService
      */
@@ -138,6 +140,7 @@ class AppointmentService extends BaseService
                        pce.pc_catid,
                        pce.pc_pid,
                        pce.pc_duration,
+                       pce.pc_title,
                        f1.name as facility_name,
                        f1_map.uuid as facility_uuid,
                        f2.name as billing_location_name,
@@ -156,7 +159,8 @@ class AppointmentService extends BaseService
                                pc_facility,
                                pc_billing_location,
                                pc_catid,
-                               pc_pid
+                               pc_pid,
+                               pc_title
                             FROM
                                  openemr_postcalendar_events
                        ) pce
@@ -179,7 +183,7 @@ class AppointmentService extends BaseService
 
         $sql .= $whereClause->getFragment();
         $sqlBindArray = $whereClause->getBoundValues();
-        $statementResults =  QueryUtils::sqlStatementThrowException($sql, $sqlBindArray);
+        $statementResults = QueryUtils::sqlStatementThrowException($sql, $sqlBindArray);
 
         $processingResult = new ProcessingResult();
         while ($row = sqlFetchArray($statementResults)) {
@@ -212,6 +216,7 @@ class AppointmentService extends BaseService
                        pce.pc_billing_location,
                        pce.pc_catid,
                        pce.pc_pid,
+                       pce.pc_title,
                        f1.name as facility_name,
                        f1_map.uuid as facility_uuid,
                        f2.name as billing_location_name,
@@ -470,7 +475,7 @@ class AppointmentService extends BaseService
      */
     public function getCalendarCategories()
     {
-        $sql = "SELECT pc_catid, pc_constant_id, pc_catname, pc_cattype,aco_spec FROM openemr_postcalendar_categories "
+        $sql = "SELECT pc_catid, pc_constant_id, pc_catname, pc_cattype,aco_spec, pc_last_updated FROM openemr_postcalendar_categories "
         . " WHERE pc_active = 1 ORDER BY pc_seq";
         return QueryUtils::fetchRecords($sql);
     }
@@ -613,6 +618,10 @@ class AppointmentService extends BaseService
             [$appointment['pc_facility']]
         );
 
+        $visit_reason = $appointment['pc_hometext'] ?? xl('Please indicate visit reason');
+        if (!empty($GLOBALS['auto_create_prevent_reason'] ?? 0)) {
+            $visit_reason = 'Please indicate visit reason';
+        }
         $data = [
             'pc_catid' => $appointment['pc_catid']
             // TODO: where would we get this information if it wasn't defaulted to ambulatory?  Should this be a globals setting?
@@ -621,7 +630,7 @@ class AppointmentService extends BaseService
             ,'puuid' => $patientUuid
             ,'pid' => $appointment['pid']
             ,'provider_id' => $user['id']
-            ,'reason' => $appointment['pc_hometext'] ?? xl('Please indicate visit reason')
+            ,'reason' => $visit_reason
             ,'facility_id' => $appointment['pc_facility']
             ,'billing_facility' => $appointment['pc_billing_location']
             ,'pos_code' => $pos_code
@@ -646,5 +655,20 @@ class AppointmentService extends BaseService
     {
         $sql = "SELECT * FROM openemr_postcalendar_categories WHERE pc_catid = ?";
         return QueryUtils::fetchRecords($sql, [$cat_id]);
+    }
+
+    public function searchCalendarCategories(array $oeSearchParameters)
+    {
+        $sql = "SELECT * FROM openemr_postcalendar_categories ";
+        $whereClause = FhirSearchWhereClauseBuilder::build($oeSearchParameters, true);
+        $sql .= $whereClause->getFragment();
+        $sqlBindArray = $whereClause->getBoundValues();
+        $records = QueryUtils::fetchRecords($sql, $sqlBindArray);
+        $processingResult = new ProcessingResult();
+        if (!empty($records)) {
+            $processingResult->setData($records);
+        }
+        // TODO: look at handling offset and limit here
+        return $processingResult;
     }
 }
