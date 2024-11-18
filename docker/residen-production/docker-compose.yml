@@ -12,6 +12,17 @@ services:
       - sitevolume:/var/www/localhost/htdocs/openemr/sites
     env_file:
       - .app_env
+  mysql:
+    image: mariadb:10.11.9
+    container_name: openemr_db
+    restart: always
+    env_file:
+      - .db_env
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./openemr_data:/var/lib/mysql
+      - ./my.cnf:/etc/mysql/my.cnf:ro
 volumes:
   logvolume01:
     driver_opts:
