@@ -83,20 +83,20 @@ function report_header_2($stmt, $providerID = '1')
     <table style="width:100%;">
         <tr>
             <?php
-                $haveLogo = false;
+            $haveLogo = false;
             if (empty(!$GLOBALS['statement_logo'])) {
                 $practice_logo = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
             } else { // 'ya never know.
-                    $practice_logo = $GLOBALS['OE_SITE_DIR'] . "/images/practice_logo.gif"; // can see is safe...
+                $practice_logo = $GLOBALS['OE_SITE_DIR'] . "/images/practice_logo.gif"; // can see is safe...
             }
 
-                //Author Daniel Pflieger - daniel@growlingflea.com
-                //We only put space for a logo if it exists.
-                //if it does we put the patient name and the service facility on a separate line.
-                //Patients with long names cause formatting issues and it makes the statement look
-                //unprofessional. Additionally, the end user should be able to choose the
-                //statement logo from Administration -> statement.
-                //
+            //Author Daniel Pflieger - daniel@growlingflea.com
+            //We only put space for a logo if it exists.
+            //if it does we put the patient name and the service facility on a separate line.
+            //Patients with long names cause formatting issues and it makes the statement look
+            //unprofessional. Additionally, the end user should be able to choose the
+            //statement logo from Administration -> statement.
+            //
             if (is_file($practice_logo)) { // note: file_exist() will return true if path exist but not file. a truly function name misnomer.
                 echo "<td style='width:15%; height: auto; text-align:center;'>\n";
                 // restrain logo proportionally
@@ -200,7 +200,7 @@ function create_HTML_statement($stmt)
     $label_insinfo = xl('Insurance information on file');
     $label_totaldue = xl('Total amount due');
     $label_payby = xl('If paying by');
-    $label_cards = xl('VISA/MC/Discovery/HSA');
+    $label_cards = xl('VISA/MC/AMEX');
     $label_cardnum = xl('Card');
     $label_expiry = xl('Exp');
     $label_cvv = xl('CVV');
@@ -280,7 +280,7 @@ function create_HTML_statement($stmt)
                 if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
                     $pt_paid_flag = true;
                     $desc = xl('Pt paid') . ' ' . substr(oeFormatShortDate($ddate), 0, 6) .
-                    substr(oeFormatShortDate($ddate), 8, 2);
+                        substr(oeFormatShortDate($ddate), 8, 2);
                 }
             } elseif (!empty($ddata['rsn'])) {
                 if ($ddata['chg']) {
@@ -456,7 +456,8 @@ function create_HTML_statement($stmt)
  ';
     $out .= $label_payby . ' ' . $label_cards;
     $out .= "<br /><br />";
-    $out .= $label_cardnum . ': __________________________________  ' . $label_expiry . ': ___ / ____ ' . $label_cvv . ':____<br /><br />';
+    $out .= $label_cardnum . ': __________________________________  ' . $label_expiry . ': ___ / ____ <br /><br />';
+    $out .= $label_cvv . ': _________ Billing Zip code: __________<br /><br />';
     $out .= $label_sign . '  ______________________________________________<br />';
     $out .= "</td><td style='width:2.0in;vertical-align:middle;'>";
     $practice_cards = $GLOBALS['OE_SITE_DIR'] . "/images/visa_mc_disc_credit_card_logos_176x35.gif";
@@ -502,77 +503,77 @@ function create_HTML_statement($stmt)
     return $output;
 }
 
-    // This function builds a printable statement or collection letter from
-    // an associative array having the following keys:
-    //
-    //  today   = statement date yyyy-mm-dd
-    //  pid     = patient ID
-    //  patient = patient name
-    //  amount  = total amount due
-    //  to      = array of addressee name/address lines
-    //  lines   = array of lines, each with the following keys:
-    //    dos     = date of service yyyy-mm-dd
-    //    desc    = description
-    //    amount  = charge less adjustments
-    //    paid    = amount paid
-    //    notice  = 1 for first notice, 2 for second, etc.
-    //    detail  = associative array of details
-    //
-    // Each detail array is keyed on a string beginning with a date in
-    // yyyy-mm-dd format, or blanks in the case of the original charge
-    // items.  Its values are associative arrays like this:
-    //
-    //  pmt - payment amount as a positive number, only for payments
-    //  src - check number or other source, only for payments
-    //  chg - invoice line item amount amount, only for charges or
-    //        adjustments (adjustments may be zero)
-    //  rsn - adjustment reason, only for adjustments
-    //
-    // The returned value is a string that can be sent to a printer.
-    // This example is plain text, but if you are a hotshot programmer
-    // then you could make a PDF or PostScript or whatever peels your
-    // banana.  These strings are sent in succession, so append a form
-    // feed if that is appropriate.
-    //
+// This function builds a printable statement or collection letter from
+// an associative array having the following keys:
+//
+//  today   = statement date yyyy-mm-dd
+//  pid     = patient ID
+//  patient = patient name
+//  amount  = total amount due
+//  to      = array of addressee name/address lines
+//  lines   = array of lines, each with the following keys:
+//    dos     = date of service yyyy-mm-dd
+//    desc    = description
+//    amount  = charge less adjustments
+//    paid    = amount paid
+//    notice  = 1 for first notice, 2 for second, etc.
+//    detail  = associative array of details
+//
+// Each detail array is keyed on a string beginning with a date in
+// yyyy-mm-dd format, or blanks in the case of the original charge
+// items.  Its values are associative arrays like this:
+//
+//  pmt - payment amount as a positive number, only for payments
+//  src - check number or other source, only for payments
+//  chg - invoice line item amount amount, only for charges or
+//        adjustments (adjustments may be zero)
+//  rsn - adjustment reason, only for adjustments
+//
+// The returned value is a string that can be sent to a printer.
+// This example is plain text, but if you are a hotshot programmer
+// then you could make a PDF or PostScript or whatever peels your
+// banana.  These strings are sent in succession, so append a form
+// feed if that is appropriate.
+//
 
-    // A sample of the text based format follows:
+// A sample of the text based format follows:
 
-    //[Your Clinic Name]             Patient Name          2009-12-29
-    //[Your Clinic Address]          Chart Number: 1848
-    //[City, State Zip]              Insurance information on file
-    //
-    //
-    //ADDRESSEE                      REMIT TO
-    //Patient Name                     [Your Clinic Name]
-    //patient address                  [Your Clinic Address]
-    //city, state zipcode              [City, State Zip]
-    //                                 If paying by VISA/MC/AMEX/Dis
-    //
-    //Card_____________________  Exp______ Signature___________________
-    //                     Return above part with your payment
-    //-----------------------------------------------------------------
-    //
-    //_______________________ STATEMENT SUMMARY _______________________
-    //
-    //Visit Date  Description                                    Amount
-    //
-    //2009-08-20  Procedure 99345                                198.90
-    //            Paid 2009-12-15:                               -51.50
-    //... more details ...
-    //...
-    //...
-    // skipping blanks in example
-    //
-    //
-    //Name: Patient Name              Date: 2009-12-29     Due:   147.40
-    //_________________________________________________________________
-    //
-    //Please call if any of the above information is incorrect
-    //We appreciate prompt payment of balances due
-    //
-    //[Your billing contact name]
-    //  Billing Department
-    //  [Your billing dept phone]
+//[Your Clinic Name]             Patient Name          2009-12-29
+//[Your Clinic Address]          Chart Number: 1848
+//[City, State Zip]              Insurance information on file
+//
+//
+//ADDRESSEE                      REMIT TO
+//Patient Name                     [Your Clinic Name]
+//patient address                  [Your Clinic Address]
+//city, state zipcode              [City, State Zip]
+//                                 If paying by VISA/MC/AMEX/Dis
+//
+//Card_____________________  Exp______ Signature___________________
+//                     Return above part with your payment
+//-----------------------------------------------------------------
+//
+//_______________________ STATEMENT SUMMARY _______________________
+//
+//Visit Date  Description                                    Amount
+//
+//2009-08-20  Procedure 99345                                198.90
+//            Paid 2009-12-15:                               -51.50
+//... more details ...
+//...
+//...
+// skipping blanks in example
+//
+//
+//Name: Patient Name              Date: 2009-12-29     Due:   147.40
+//_________________________________________________________________
+//
+//Please call if any of the above information is incorrect
+//We appreciate prompt payment of balances due
+//
+//[Your billing contact name]
+//  Billing Department
+//  [Your billing dept phone]
 
 function create_statement($stmt)
 {
@@ -890,9 +891,9 @@ function osp_create_HTML_statement($stmt)
 
     // Facility (service location)
     $atres = sqlStatement("select f.name,f.street,f.city,f.state,f.postal_code,f.attn,f.phone from facility f " .
-    " left join users u on f.id=u.facility_id " .
-    " left join  billing b on b.provider_id=u.id and b.pid = ? " .
-    " where  service_location=1", array($stmt['pid']));
+        " left join users u on f.id=u.facility_id " .
+        " left join  billing b on b.provider_id=u.id and b.pid = ? " .
+        " where  service_location=1", array($stmt['pid']));
     $row = sqlFetchArray($atres);
     $clinic_name = "{$row['name']}";
     $clinic_addr = "{$row['street']}";
