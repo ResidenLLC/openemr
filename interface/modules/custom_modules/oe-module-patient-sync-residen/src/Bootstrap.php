@@ -67,64 +67,6 @@ class Bootstrap
         $this->syncService = new PatientSyncService();
         $this->logger = new SystemLogger();
     }
-
-    public function subscribeToEvents()
-    {
-
-        $this->addGlobalSettings();
-
-        if ($this->globalsConfig->isConfigured()) {
-            $this->registerMenuItems();
-            //$this->registerTemplateEvents();
-            //$this->subscribeToApiEvents();
-        }
-
-
-
-        // Register globals (settings)
-        //$this->eventDispatcher->addListener(GlobalsInitializedEvent::EVENT_HANDLE, [$this, 'registerGlobalSettings']);
-
-        // Patient events
-        $this->eventDispatcher->addListener(PatientCreatedEvent::EVENT_HANDLE, [$this, 'onPatientCreated']);
-        $this->eventDispatcher->addListener(PatientUpdatedEvent::EVENT_HANDLE, [$this, 'onPatientUpdated']);
-        //$this->eventDispatcher->addListener(PatientBeforeDeleteEvent::EVENT_HANDLE, [$this, 'onPatientDeleted']);
-    }
-
-    public function getGlobalConfig()
-    {
-        return $this->globalsConfig;
-    }
-
-
-    public function registerMenuItems()
-    {
-        if ($this->getGlobalConfig()->getGlobalSetting(GlobalConfig::CONFIG_ENABLE_MENU)) {
-            /**
-             * @var EventDispatcherInterface $eventDispatcher
-             * @var array $module
-             * @global                       $eventDispatcher @see ModulesApplication::loadCustomModule
-             * @global                       $module @see ModulesApplication::loadCustomModule
-             */
-            $this->eventDispatcher->addListener(MenuEvent::MENU_UPDATE, [$this, 'addCustomModuleMenuItem']);
-        }
-    }
-
-
-   /* public function registerGlobalSettings(GlobalsInitializedEvent $event)
-    {
-        $globalsArray = $event->getGlobals();
-        $settings = GlobalConfig::getGlobalSettings();
-
-        // Add our section to globals
-        $globalsArray->addUserSection('Patient Sync', 'patient_sync');
-
-        // Register each setting
-        foreach ($settings as $key => $setting) {
-            $globalsArray->createGlobalSetting($key, $setting['default'], $setting['title'],
-                $setting['description'], $setting['type'], $setting['options'] ?? [], 'patient_sync');
-        }
-    }*/
-
     public function addGlobalSettings()
     {
         $this->eventDispatcher->addListener(GlobalsInitializedEvent::EVENT_HANDLE, [$this, 'addGlobalSettingsSection']);
@@ -156,13 +98,36 @@ class Bootstrap
         }
     }
 
+    public function getGlobalConfig()
+    {
+        return $this->globalsConfig;
+    }
+
+    public function subscribeToEvents()
+    {
+        $this->addGlobalSettings();
+        if ($this->globalsConfig->isConfigured()) {
+            $this->registerPatientCreate();
+            $this->registerPatientModified();
+        }
+    }
+
+    public function registerPatientCreate()
+    {
+        if ($this->getGlobalConfig()->getGlobalSetting(GlobalConfig::CONFIG_ENABLE_PATIENTS_SYNC)) {
+            $this->eventDispatcher->addListener(PatientCreatedEvent::EVENT_HANDLE, [$this, 'onPatientCreated']);
+        }
+    }
+
+    public function registerPatientModified()
+    {
+        if ($this->getGlobalConfig()->getGlobalSetting(GlobalConfig::CONFIG_ENABLE_PATIENTS_SYNC)) {
+            $this->eventDispatcher->addListener(PatientUpdatedEvent::EVENT_HANDLE, [$this, 'onPatientUpdated']);
+        }
+    }
+
     public function onPatientCreated(PatientCreatedEvent $event)
     {
-        // Check if sync is enabled in settings
-        /*if ($GLOBALS['patient_sync_enabled'] !== '1') {
-            return;
-        }*/
-
         try {
             $patientData = $event->getPatientData();
             var_dump($patientData);
@@ -175,33 +140,12 @@ class Bootstrap
 
     public function onPatientUpdated(PatientUpdatedEvent $event)
     {
-        // Check if sync is enabled in settings
-        /*if ($GLOBALS['patient_sync_enabled'] !== '1') {
-            return;
-        }*/
-
         try {
             $patientData = $event->getPatientData();
             $this->syncService->syncPatientUpdated($patientData);
             $this->logEvent('debug', "Patient sync: Successfully synced updated patient", ['pid' => $patientData['pid']]);
         } catch (\Exception $e) {
             $this->logEvent('error', "Patient sync error on update", ['error' => $e->getMessage()]);
-        }
-    }
-
-    public function onPatientDeleted(PatientBeforeDeleteEvent $event)
-    {
-        // Check if sync is enabled in settings
-        if ($GLOBALS['patient_sync_enabled'] !== '1') {
-            return;
-        }
-
-        try {
-            $pid = $event->getPid();
-            $this->syncService->syncPatientDeleted($pid);
-            $this->logEvent('debug', "Patient sync: Successfully synced deleted patient", ['pid' => $pid]);
-        } catch (\Exception $e) {
-            $this->logEvent('error', "Patient sync error on deletion", ['error' => $e->getMessage()]);
         }
     }
 
@@ -227,4 +171,20 @@ class Bootstrap
             $this->logger->$level($message, $context);
         }
     }
+
+    /*public function onPatientDeleted(PatientBeforeDeleteEvent $event)
+    {
+        // Check if sync is enabled in settings
+        if ($GLOBALS['patient_sync_enabled'] !== '1') {
+            return;
+        }
+
+        try {
+            $pid = $event->getPid();
+            $this->syncService->syncPatientDeleted($pid);
+            $this->logEvent('debug', "Patient sync: Successfully synced deleted patient", ['pid' => $pid]);
+        } catch (\Exception $e) {
+            $this->logEvent('error', "Patient sync error on deletion", ['error' => $e->getMessage()]);
+        }
+    }*/
 }

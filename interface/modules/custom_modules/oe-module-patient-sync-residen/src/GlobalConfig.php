@@ -7,12 +7,13 @@ use OpenEMR\Services\Globals\GlobalSetting;
 class GlobalConfig
 {
 
-    const CONFIG_OPTION_TEXT = 'oe_patient_sysnc_config_option_text';
-    const CONFIG_OPTION_ENCRYPTED = 'oe_patient_sysnc_config_option_encrypted';
-    const CONFIG_OVERRIDE_TEMPLATES = "oe_patient_sysnc_override_twig_templates";
-    const CONFIG_ENABLE_MENU = "oe_patient_sysnc_add_menu_button";
-    const CONFIG_ENABLE_BODY_FOOTER = "oe_patient_sysnc_add_body_footer";
-    const CONFIG_ENABLE_FHIR_API = "oe_patient_sysnc_enable_fhir_api";
+    const CONFIG_ENABLE_PATIENTS_SYNC = "oe_patient_sysnc_patient_sync_enabled";
+    const CONFIG_OPTION_API_URL = 'oe_patient_sysnc_config_option_text';
+    const CONFIG_OPTION_API_TOKEN = 'oe_patient_sysnc_config_option_encrypted';
+    const CONFIG_OPTION_API_PUBLIC_KEY = "oe_patient_sysnc_patient_api_public_key";
+
+
+
     const MODULE_NAME = 'patient_sync';
 
     private $globalsArray;
@@ -30,7 +31,7 @@ class GlobalConfig
 
     public function isConfigured()
     {
-        $keys = [self::CONFIG_OPTION_TEXT, self::CONFIG_OPTION_ENCRYPTED];
+        $keys = [self::CONFIG_OPTION_API_PUBLIC_KEY, self::CONFIG_OPTION_API_TOKEN, self::CONFIG_OPTION_API_URL];
         foreach ($keys as $key) {
             $value = $this->getGlobalSetting($key);
             if (empty($value)) {
@@ -42,7 +43,7 @@ class GlobalConfig
 
     public function getTextOption()
     {
-        return $this->getGlobalSetting(self::CONFIG_OPTION_TEXT);
+        return $this->getGlobalSetting(self::CONFIG_OPTION_API_URL);
     }
 
     /**
@@ -51,7 +52,7 @@ class GlobalConfig
      */
     public function getEncryptedOption()
     {
-        $encryptedValue = $this->getGlobalSetting(self::CONFIG_OPTION_ENCRYPTED);
+        $encryptedValue = $this->getGlobalSetting(self::CONFIG_OPTION_API_TOKEN);
         return $this->cryptoGen->decryptStandard($encryptedValue);
     }
 
@@ -65,88 +66,32 @@ class GlobalConfig
     public function getGlobalSettingSectionConfiguration()
     {
         $settings = [
-            self::CONFIG_OPTION_TEXT => [
-                'title' => 'The Residen API path'
+            self::CONFIG_ENABLE_PATIENTS_SYNC => [
+                'title' => 'Enable patient Sync OpenEMR and Residen'
+                ,'description' => 'Enable the patients sync between Openemr and Residen'
+                ,'type' => GlobalSetting::DATA_TYPE_BOOL
+                ,'default' => ''
+            ],
+            self::CONFIG_OPTION_API_URL => [
+                'title' => 'The Residen API url'
                 ,'description' => 'The Residen API path for comunication with the API'
                 ,'type' => GlobalSetting::DATA_TYPE_TEXT
                 ,'default' => ''
+            ],
+            self::CONFIG_OPTION_API_PUBLIC_KEY => [
+                'title' => 'Public API Key'
+                ,'description' => 'The Residen API used for linking the doctor'
+                ,'type' => GlobalSetting::DATA_TYPE_TEXT
+                ,'default' => ''
             ]
-            ,self::CONFIG_OPTION_ENCRYPTED => [
+            ,self::CONFIG_OPTION_API_TOKEN => [
                 'title' => 'Security token (Encrypted)'
                 ,'description' => 'The Bearer security token used for the API calls. Warning ensitive data'
                 ,'type' => GlobalSetting::DATA_TYPE_ENCRYPTED
-                ,'default' => ''
-            ]
-            ,self::CONFIG_OPTION_ENCRYPTED => [
-                'title' => 'Security token (Encrypted)'
-                ,'description' => 'The Bearer security token used for the API calls. Warning ensitive data'
-                ,'type' => GlobalSetting::DATA_TYPE_ENCRYPTED
-                ,'default' => ''
-            ]
-            ,self::CONFIG_OVERRIDE_TEMPLATES => [
-                'title' => 'Skeleton Module enable overriding twig files'
-                ,'description' => 'Shows example of overriding a twig file'
-                ,'type' => GlobalSetting::DATA_TYPE_BOOL
-                ,'default' => ''
-            ]
-            ,self::CONFIG_ENABLE_MENU => [
-                'title' => 'Skeleton Module add module menu item'
-                ,'description' => 'Shows example of adding a menu item to the system (requires logging out and logging in again)'
-                ,'type' => GlobalSetting::DATA_TYPE_BOOL
-                ,'default' => ''
-            ]
-            ,self::CONFIG_ENABLE_BODY_FOOTER => [
-                'title' => 'Skeleton Module Enable Body Footer example.'
-                ,'description' => 'Shows example of adding a menu item to the system (requires logging out and logging in again)'
-                ,'type' => GlobalSetting::DATA_TYPE_BOOL
-                ,'default' => ''
-            ]
-            ,self::CONFIG_ENABLE_FHIR_API => [
-                'title' => 'Skeleton Module Enable FHIR API Extension example.'
-                ,'description' => 'Shows example of extending the FHIR api with the skeleton module.'
-                ,'type' => GlobalSetting::DATA_TYPE_BOOL
                 ,'default' => ''
             ]
         ];
         return $settings;
     }
 
-
-
-
-    // Configuration field definitions
-    public static function getGlobalSettings()
-    {
-        return [
-            'patient_sync_api_endpoint' => [
-                'title' => 'API Endpoint URL',
-                'description' => 'The URL endpoint to synchronize patient data',
-                'type' => 'text',
-                'default' => 'https://your-platform-api.com/patients'
-            ],
-            'patient_sync_api_key' => [
-                'title' => 'API Security Token',
-                'description' => 'Security token/key for API authentication',
-                'type' => 'encrypted',
-                'default' => ''
-            ],
-            'patient_sync_enabled' => [
-                'title' => 'Enable Synchronization',
-                'description' => 'Turn patient synchronization on or off',
-                'type' => 'bool',
-                'default' => '1'
-            ],
-            'patient_sync_log_level' => [
-                'title' => 'Log Level',
-                'description' => 'Detail level for synchronization logs',
-                'type' => 'select',
-                'options' => [
-                    'error' => 'Errors Only',
-                    'info' => 'Info',
-                    'debug' => 'Debug (Verbose)'
-                ],
-                'default' => 'info'
-            ]
-        ];
-    }
 }
