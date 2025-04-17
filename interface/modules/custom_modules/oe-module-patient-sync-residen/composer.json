@@ -1,0 +1,21 @@
+{
+    "name": "openemr/patient-sync",
+    "description": "Patient Synchronization Module for OpenEMR",
+    "type": "openemr-module",
+    "authors": [
+        {
+            "name": "Tudor Tibu",
+            "email": "tudor.tibu@assist.ro"
+        }
+    ],
+    "minimum-stability": "stable",
+    "autoload": {
+        "psr-4": {
+            "OpenEMR\\Modules\\PatientSync\\": "src/"
+        }
+    },
+    "require": {
+        "openemr/oe-module-installer-plugin": "^0.1.0",
+        "guzzlehttp/guzzle": "^7.0"
+    }
+}
