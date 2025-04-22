@@ -141,7 +141,7 @@ class Bootstrap
     public function onPatientUpdated(PatientUpdatedEvent $event)
     {
         try {
-            $patientData = $event->getPatientData();
+            $patientData = $event->getNewPatientData();
             $this->syncService->syncPatientUpdated($patientData);
             $this->logEvent('debug', "Patient sync: Successfully synced updated patient", ['pid' => $patientData['pid']]);
         } catch (\Exception $e) {

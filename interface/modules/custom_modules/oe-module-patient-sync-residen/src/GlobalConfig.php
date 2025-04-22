@@ -41,9 +41,19 @@ class GlobalConfig
         return true;
     }
 
-    public function getTextOption()
+    public function getApiUrl()
     {
         return $this->getGlobalSetting(self::CONFIG_OPTION_API_URL);
+    }
+
+    public function getApiPublicKey()
+    {
+        return $this->getGlobalSetting(self::CONFIG_OPTION_API_PUBLIC_KEY);
+    }
+
+    public function getApiToken()
+    {
+        return $this->getGlobalSetting(self::CONFIG_OPTION_API_TOKEN);
     }
 
     /**
