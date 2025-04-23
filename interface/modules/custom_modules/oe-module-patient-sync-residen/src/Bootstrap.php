@@ -1,23 +1,13 @@
 <?php
 namespace OpenEMR\Modules\PatientSync;
-
-
-
-
-
-
-use OpenEMR\Common\Http\HttpRestRequest;
 use OpenEMR\Common\Logging\SystemLogger;
 use OpenEMR\Events\Patient\PatientCreatedEvent;
 use OpenEMR\Events\Patient\PatientUpdatedEvent;
 use OpenEMR\Events\Patient\PatientBeforeDeleteEvent;
 use OpenEMR\Events\Globals\GlobalsInitializedEvent;
-use OpenEMR\Modules\PatientSync\GlobalConfig;
-use OpenEMR\Services\PatientService;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use OpenEMR\Core\Kernel;
 use OpenEMR\Services\Globals\GlobalSetting;
-use OpenEMR\Menu\MenuEvent;
 
 
 class Bootstrap
@@ -119,6 +109,7 @@ class Bootstrap
     {
         if ($this->getGlobalConfig()->getGlobalSetting(GlobalConfig::CONFIG_ENABLE_PATIENTS_SYNC)) {
             $this->eventDispatcher->addListener(PatientCreatedEvent::EVENT_HANDLE, [$this, 'onPatientCreated']);
+            //$this->logger->debug("Registered patient create listener");
         }
     }
 
@@ -126,7 +117,7 @@ class Bootstrap
     {
         if ($this->getGlobalConfig()->getGlobalSetting(GlobalConfig::CONFIG_ENABLE_PATIENTS_SYNC)) {
             $this->eventDispatcher->addListener(PatientUpdatedEvent::EVENT_HANDLE, [$this, 'onPatientUpdated']);
-            $this->logger->debug("Registered patient update listener");
+            //$this->logger->debug("Registered patient update listener");
         }
     }
 
@@ -176,7 +167,7 @@ class Bootstrap
         }
     }
 
-    /*public function onPatientDeleted(PatientBeforeDeleteEvent $event)
+    public function onPatientDeleted(PatientBeforeDeleteEvent $event)
     {
         // Check if sync is enabled in settings
         if ($GLOBALS['patient_sync_enabled'] !== '1') {
@@ -190,5 +181,5 @@ class Bootstrap
         } catch (\Exception $e) {
             $this->logEvent('error', "Patient sync error on deletion", ['error' => $e->getMessage()]);
         }
-    }*/
+    }
 }

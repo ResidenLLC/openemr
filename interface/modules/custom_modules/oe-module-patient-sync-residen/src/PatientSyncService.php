@@ -114,7 +114,7 @@ class PatientSyncService
         }
     }
 
-    /*public function syncPatientDeleted($pid)
+    public function syncPatientDeleted($pid)
     {
         try {
             return $this->client->delete($this->apiEndpoint . '/' . $pid);
@@ -125,7 +125,7 @@ class PatientSyncService
             ]);
             throw $e;
         }
-    }*/
+    }
 
     private function formatPatientData($patientData)
     {
