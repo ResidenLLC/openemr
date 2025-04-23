@@ -59,6 +59,9 @@ class Bootstrap
             $kernel = new Kernel();
         }
 
+
+        $this->logger = new SystemLogger();
+
         $this->moduleDirectoryName = basename(dirname(__DIR__));
         $this->eventDispatcher = $eventDispatcher;
 
@@ -123,6 +126,7 @@ class Bootstrap
     {
         if ($this->getGlobalConfig()->getGlobalSetting(GlobalConfig::CONFIG_ENABLE_PATIENTS_SYNC)) {
             $this->eventDispatcher->addListener(PatientUpdatedEvent::EVENT_HANDLE, [$this, 'onPatientUpdated']);
+            $this->logger->debug("Registered patient update listener");
         }
     }
 
@@ -130,11 +134,10 @@ class Bootstrap
     {
         try {
             $patientData = $event->getPatientData();
-            var_dump($patientData);
             $this->syncService->syncPatientCreated($patientData);
-            $this->logEvent('debug', "Patient sync: Successfully synced new patient", ['pid' => $patientData['pid']]);
+            $this->logger->debug("Patient sync: Successfully synced new patient", ['pid' => $patientData['pid'], 'data' => $patientData]);
         } catch (\Exception $e) {
-            $this->logEvent('error', "Patient sync error on creation", ['error' => $e->getMessage()]);
+            $this->logger->error("Patient sync error on creation", ['error' => $e->getMessage()]);
         }
     }
 
@@ -142,10 +145,11 @@ class Bootstrap
     {
         try {
             $patientData = $event->getNewPatientData();
+            //$this->logger->debug("Patient update event received", ['data' => $patientData]);
             $this->syncService->syncPatientUpdated($patientData);
-            $this->logEvent('debug', "Patient sync: Successfully synced updated patient", ['pid' => $patientData['pid']]);
+            $this->logger->debug("Patient sync: Successfully synced updated patient", ['pid' => $patientData['pid'], 'data' => $patientData]);
         } catch (\Exception $e) {
-            $this->logEvent('error', "Patient sync error on update", ['error' => $e->getMessage()]);
+            $this->logger->error("Patient sync error on update", ['error' => $e->getMessage()]);
         }
     }
 
