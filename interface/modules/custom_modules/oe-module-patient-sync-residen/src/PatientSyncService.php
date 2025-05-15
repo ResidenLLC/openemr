@@ -147,6 +147,8 @@ class PatientSyncService
             'phone_cell' => $sanitizedData['phone_cell'] ?? '',
             'phone_home' => $sanitizedData['phone_home'] ?? '',
             'phone_biz' => $sanitizedData['phone_biz'] ?? '',
+            'hipaa_notice' => $sanitizedData['hipaa_notice'] ?? '',
+            'billing_note' => $sanitizedData['billing_note'] ?? '',
         ];
     }
 }
