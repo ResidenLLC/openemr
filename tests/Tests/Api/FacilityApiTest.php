@@ -8,7 +8,7 @@ use OpenEMR\Tests\Fixtures\FacilityFixtureManager;
 
 /**
  * Facility API Endpoint Test Cases.
- * @coversDefaultClass OpenEMR\Tests\Api\ApiTestClient
+ * @coversDefaultClass \OpenEMR\RestControllers\FacilityRestController
  * @package   OpenEMR
  * @link      http://www.open-emr.org
  * @author    Yash Bothra <yashrajbothra786gmail.com>
@@ -20,6 +20,7 @@ class FacilityApiTest extends TestCase
 {
     const FACILITY_API_ENDPOINT = "/apis/default/api/facility";
     private $testClient;
+    private $facilityRecord;
 
     /**
      * @var FacilityFixtureManager

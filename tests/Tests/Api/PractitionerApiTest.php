@@ -8,7 +8,8 @@ use OpenEMR\Tests\Fixtures\PractitionerFixtureManager;
 
 /**
  * Practitioner API Endpoint Test Cases.
- * @coversDefaultClass OpenEMR\Tests\Api\ApiTestClient
+ * @coversDefaultClass \OpenEMR\RestControllers\PractitionerRestController
+ *
  * @package   OpenEMR
  * @link      http://www.open-emr.org
  * @author    Yash Bothra <yashrajbothra786gmail.com>
@@ -25,6 +26,7 @@ class PractitionerApiTest extends TestCase
      */
     private $testClient;
     private $fixtureManager;
+    private $practitionerRecord;
 
     protected function setUp(): void
     {

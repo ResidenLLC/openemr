@@ -8,8 +8,7 @@ use OpenEMR\Tests\Fixtures\FixtureManager;
 
 /**
  * Patient API Endpoint Test Cases.
- * NOTE: currently disabled (by naming convention) until work is completed to support running as part of Travis CI
- * @coversDefaultClass OpenEMR\Tests\Api\ApiTestClient
+ * @coversDefaultClass \OpenEMR\RestControllers\PatientRestController
  * @package   OpenEMR
  * @link      http://www.open-emr.org
  * @author    Dixon Whitmire <dixonwh@gmail.com>
@@ -22,6 +21,7 @@ class PatientApiTest extends TestCase
     const PATIENT_API_ENDPOINT = "/apis/default/api/patient";
     private $testClient;
     private $fixtureManager;
+    private $patientRecord;
 
     protected function setUp(): void
     {
@@ -151,7 +151,6 @@ class PatientApiTest extends TestCase
         $this->assertEquals($patientUuid, $responseBody["data"]["uuid"]);
         $this->assertEquals($patientPid, $responseBody["data"]["pid"]);
     }
-
 
     /**
      * @covers ::getAll
