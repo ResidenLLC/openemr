@@ -13,6 +13,7 @@
 /** import supporting libraries */
 
 use OpenEMR\Services\DocumentTemplates\DocumentTemplateRender;
+use OpenEMR\Services\Utils\TranslationService;
 
 require_once("AppBasePortalController.php");
 require_once("Model/OnsiteDocument.php");
@@ -66,6 +67,7 @@ class OnsiteDocumentController extends AppBasePortalController
         $catid = $_GET['catid'] ?? '';
         $new_filename = $_GET['new'] ?? '';
         $doc_edit = $_GET['edit'] ?? 0;
+        $referer_flag = $_GET['referer_flag'] ?? 0; // return to New Documents or Documents
 
         $auto_render = $_GET['auto_render_id'] ?? 0;
         $auto_render_name = $_GET['auto_render_name'] ?? 0;
@@ -75,6 +77,9 @@ class OnsiteDocumentController extends AppBasePortalController
         unset($_GET['auto_render_name']);
         unset($_GET['audit_render_id']);
 
+        $language_defs = TranslationService::getLanguageDefinitionsForSession();
+
+        $this->Assign("language_defs", $language_defs);
         $this->Assign('doc_edit', $doc_edit);
         $this->Assign('recid', $recid);
         $this->Assign('help_id', $help_id);
@@ -88,6 +93,7 @@ class OnsiteDocumentController extends AppBasePortalController
         $this->Assign('new_filename', $new_filename);
         $this->Assign('auto_render', $auto_render);
         $this->Assign('audit_render', $audit_render);
+        $this->Assign('referer_flag', $referer_flag);
         $this->Assign('auto_render_name', $auto_render_name);
         $this->Render();
     }
@@ -112,6 +118,11 @@ class OnsiteDocumentController extends AppBasePortalController
             $recid = RequestUtil::Get('recid');
             if ($recid > 0) {
                 $criteria->Id_Equals = $recid;
+            }
+
+            $exc = RequestUtil::Get('showActive');
+            if ($exc != 'true') {
+                $criteria->DenialReason_IsNotLike = 'Locked';
             }
 
             $filter = RequestUtil::Get('filter');
@@ -139,8 +150,11 @@ class OnsiteDocumentController extends AppBasePortalController
 
             // if a sort order was specified then specify in the criteria
             $output->orderBy = RequestUtil::Get('orderBy');
+            $output->orderBy = $output->orderBy ? $output->orderBy : 'DenialReason';
             $output->orderDesc = RequestUtil::Get('orderDesc') != '';
             if ($output->orderBy) {
+                $criteria->SetOrder($output->orderBy, $output->orderDesc);
+                $output->orderBy = 'ReviewDate';
                 $criteria->SetOrder($output->orderBy, $output->orderDesc);
             }
 
@@ -332,7 +346,6 @@ class OnsiteDocumentController extends AppBasePortalController
                 if (!empty($existing)) {
                     $config = HTMLPurifier_Config::createDefault();
                     $config->set('Core.Encoding', 'UTF-8');
-                    $config->set('CSS.AllowedProperties', '*');
                     // purifier will only allow base64 data urls in img tag.
                     // all other element will be removed. Flatten document have already been sanitized
                     // by replacing all inputs, checks and radios tags to their answers.

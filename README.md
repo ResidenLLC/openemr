@@ -1,6 +1,7 @@
-![Syntax Status](https://github.com/openemr/openemr/workflows/Syntax/badge.svg?branch=master)
-![Styling Status](https://github.com/openemr/openemr/workflows/Styling/badge.svg?branch=master)
-![Testing Status](https://github.com/openemr/openemr/workflows/Test/badge.svg?branch=master)
+[![Syntax Status](https://github.com/openemr/openemr/actions/workflows/syntax.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/syntax.yml)
+[![Styling Status](https://github.com/openemr/openemr/actions/workflows/styling.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/styling.yml)
+[![Testing Status](https://github.com/openemr/openemr/actions/workflows/test.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/test.yml)
+[![JS Unit Testing Status](https://github.com/openemr/openemr/actions/workflows/js-test.yml/badge.svg)](https://github.com/openemr/openemr/actions/workflows/js-test.yml)
 
 [![Backers on Open Collective](https://opencollective.com/openemr/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/openemr/sponsors/badge.svg)](#sponsors)
 
@@ -59,7 +60,7 @@ This project exists thanks to all the people who have contributed. [[Contribute]
 
 ### Sponsors
 
-Thanks to our [2015 Edition Major Sponsors](https://www.open-emr.org/wiki/index.php/OpenEMR_Certification_Stage_III_Meaningful_Use#Major_sponsors)!
+Thanks to our [ONC Certification Major Sponsors](https://www.open-emr.org/wiki/index.php/OpenEMR_Certification_Stage_III_Meaningful_Use#Major_sponsors)!
 
 
 ### License

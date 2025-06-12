@@ -16,10 +16,8 @@ use Juggernaut\OpenEMR\Modules\PriorAuthModule\Controller\ListAuthorizations;
 use OpenEMR\Core\Header;
 use OpenEMR\Common\Csrf\CsrfUtils;
 
-$pid = $_SESSION['pid'];
-
-
-function isValid($date, $format = 'Y-m-d')
+$pid = $_SESSION['pid'] ?? null;
+function isValid($date, $format = 'Y-m-d'): bool
 {
     $dt = DateTime::createFromFormat($format, $date);
     return $dt && $dt->format($format) === $date;
@@ -94,7 +92,7 @@ const TABLE_TD = "</td><td>";
                 <span style="font-size: xx-large; padding-right: 20px"><?php echo xlt('Prior Authorization Manager'); ?></span>
                 <a href="../../../../patient_file/summary/demographics.php" onclick="top.restoreSession()"
                    title="<?php echo xla('Go Back') ?>">
-                    <i id="advanced-tooltip" class="fa fa-undo fa-2x small" aria-hidden="true"></i></a>
+                    <i id="advanced-tooltip" class="fa fa-undo fa-2x" aria-hidden="true"></i></a>
 
         </div>
         <div class="m-4">
@@ -123,7 +121,7 @@ const TABLE_TD = "</td><td>";
                     </div>
                 </div>
                 <div class="form-row">
-                    <div class="col">
+                    <div class="col my-1">
                         <input class="form-control" id="cpts" name="cpts" value="" placeholder="<?php echo xla('CPTs') ?>">
                     </div>
                 </div>

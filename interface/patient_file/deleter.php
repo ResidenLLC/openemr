@@ -176,7 +176,7 @@ function form_delete($formdir, $formid, $patient_id, $encounter_id)
 
 // Delete a specified document including its associated relations.
 //  Note the specific file is not deleted (instead flagged as deleted), since required to keep file for
-//   ONC 2015 certification purposes.
+//   ONC certification purposes.
 //
 function delete_document($document)
 {
@@ -237,12 +237,9 @@ function popup_close() {
 
                 $res = sqlStatement("SELECT * FROM forms WHERE pid = ?", array($patient));
                 while ($row = sqlFetchArray($res)) {
-                    row_modify(
-                        "forms",
-                        "deleted = 1",
-                        "pid = '" . add_escape_custom($row['pid']) .
-                            "' AND form_id = '" . add_escape_custom($row['form_id']) . "'"
-                    );
+                    row_delete("forms", "pid = '" . add_escape_custom($row['pid']) .
+                            "' AND form_id = '" . add_escape_custom($row['form_id']) . "'");
+                    row_delete("form_encounter", "pid = '" . add_escape_custom($row['pid']) . "'");
                 }
 
                 // Delete all documents for the patient.

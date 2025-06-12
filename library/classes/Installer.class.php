@@ -47,7 +47,6 @@ class Installer
     public $translation_sql;
     public $devel_translation_sql;
     public $ippf_sql;
-    public $icd9;
     public $cvx;
     public $additional_users;
     public $dumpfiles;
@@ -95,7 +94,6 @@ class Installer
         $this->translation_sql = dirname(__FILE__) . '/../../contrib/util/language_translations/currentLanguage_utf8.sql';
         $this->devel_translation_sql = "http://translations.openemr.io/languageTranslations_utf8.sql";
         $this->ippf_sql = dirname(__FILE__) . "/../../sql/ippf_layout.sql";
-        $this->icd9 = dirname(__FILE__) . "/../../sql/icd9.sql";
         $this->cvx = dirname(__FILE__) . "/../../sql/cvx_codes.sql";
         $this->additional_users = dirname(__FILE__) . "/../../sql/official_additional_users.sql";
 
@@ -486,21 +484,6 @@ class Installer
         }
 
         return true;
-    }
-
-    /**
-     * Generates the initial user's 2FA QR Code
-     * @deprecated Recommended to use get_initial_user_mfa_totp() instead
-     * @return bool|string|void
-     */
-    public function get_initial_user_2fa_qr()
-    {
-        if (($this->i2faEnable) && (!empty($this->i2faSecret)) && (class_exists('Totp'))) {
-            $adminTotp = new Totp($this->i2faSecret, $this->iuser);
-            $qr = $adminTotp->generateQrCode();
-            return $qr;
-        }
-        return false;
     }
 
     /**
@@ -1346,14 +1329,23 @@ $config = 1; /////////////
             $this->user_database_connection();
         }
 
-        $results = mysqli_query($this->dbh, $sql);
-        if ($results) {
-            return $results;
-        } else {
+        try {
+            $results = mysqli_query($this->dbh, $sql);
+            if ($results) {
+                return $results;
+            } else {
+                if ($showError) {
+                    $error_mes = mysqli_error($this->dbh);
+                    $this->error_message = "unable to execute SQL: '$sql' due to: " . $error_mes;
+                    error_log("ERROR IN OPENEMR INSTALL: Unable to execute SQL: " . htmlspecialchars($sql, ENT_QUOTES) . " due to: " . htmlspecialchars($error_mes, ENT_QUOTES));
+                }
+                return false;
+            }
+        // this exception only occurs if MYSQLI_REPORT_STRICT is enabled (see https://www.php.net/manual/en/mysqli.query.php)
+        } catch (\mysqli_sql_exception $exception) {
             if ($showError) {
-                $error_mes = mysqli_error($this->dbh);
-                $this->error_message = "unable to execute SQL: '$sql' due to: " . $error_mes;
-                error_log("ERROR IN OPENEMR INSTALL: Unable to execute SQL: " . htmlspecialchars($sql, ENT_QUOTES) . " due to: " . htmlspecialchars($error_mes, ENT_QUOTES));
+                $this->error_message = "unable to execute SQL: '$sql' due to: " . $exception->getMessage();
+                error_log("ERROR IN OPENEMR INSTALL: Unable to execute SQL: " . htmlspecialchars($sql, ENT_QUOTES) . " due to: " . htmlspecialchars($exception->getMessage(), ENT_QUOTES));
             }
             return false;
         }
@@ -1442,11 +1434,6 @@ $config = 1; /////////////
 
             if ($this->ippf_specific) {
                 $dumpfiles[ $this->ippf_sql ] = "IPPF Layout";
-            }
-
-            // Load ICD-9 codes if present.
-            if (file_exists($this->icd9)) {
-                $dumpfiles[ $this->icd9 ] = "ICD-9";
             }
 
             // Load CVX codes if present

@@ -24,10 +24,18 @@ class TwilioSMSClient extends AppDispatch
     public $uriDir;
     public $serverUrl;
     public $credentials;
-    protected $crypto;
+    protected CryptoGen $crypto;
     private $sid;
     private $appKey;
     private $appSecret;
+    /**
+     * @var mixed|string
+     */
+    private mixed $accountSID;
+    /**
+     * @var mixed|string
+     */
+    private mixed $authToken;
 
     public function __construct()
     {
@@ -70,8 +78,7 @@ class TwilioSMSClient extends AppDispatch
         $this->sid = $credentials['username'] ?? '';
         $this->appKey = $credentials['appKey'] ?? '';
         $this->appSecret = $credentials['appSecret'] ?? '';
-        $this->serverUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ?
-                "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
+        $this->serverUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
         $this->uriDir = $this->serverUrl . $this->uriDir;
 
         return $credentials;
@@ -122,10 +129,10 @@ class TwilioSMSClient extends AppDispatch
     }
 
     /**
-     * @param $acl
+     * @param array $acl
      * @return int
      */
-    public function authenticate($acl = ['admin', 'doc']): int
+    public function authenticate(array $acl = ['patients', 'appt']): int
     {
         // did construct happen...
         if (empty($this->credentials)) {
@@ -164,7 +171,7 @@ class TwilioSMSClient extends AppDispatch
                 ], 100);
             } catch (Exception $e) {
                 $message = $e->getMessage();
-                $emsg = xlt('Ensure account credentials are correct.');
+                $emsg = xlt('Report to Administration');
                 return json_encode(array('error' => $message . " : " . $emsg));
             }
 
@@ -203,7 +210,7 @@ class TwilioSMSClient extends AppDispatch
             }
         } catch (Exception $e) {
             $message = $e->getMessage();
-            $responseMsgs = "<tr><td>" . text($message) . " : " . xlt('Ensure account credentials are correct.') . "</td></tr>";
+            $responseMsgs = "<tr><td>" . text($message) . " : " . xlt('Report to Administration') . "</td></tr>";
             echo json_encode(array('error' => $responseMsgs));
             exit();
         }

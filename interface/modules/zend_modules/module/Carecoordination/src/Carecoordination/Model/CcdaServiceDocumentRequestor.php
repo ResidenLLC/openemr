@@ -18,6 +18,9 @@ use OpenEMR\Common\System\System;
 
 class CcdaServiceDocumentRequestor
 {
+    /**
+     * @throws CcdaServiceConnectionException
+     */
     public function socket_get($data)
     {
         $output = "";
@@ -62,11 +65,14 @@ class CcdaServiceDocumentRequestor
                     $cmd = $system->escapeshellcmd("$command " . $path . "/serveccda.js");
                     exec($cmd . " > /dev/null &");
                 }
-                sleep(2); // give cpu a rest
-                $result = socket_connect($socket, "127.0.0.1", "6661");
-                if ($result === false) { // hmm something is amiss with service. user will likely try again.
-                    error_log("Failed to start and connect to local ccdaservice server on port 6661");
-                    throw new CcdaServiceConnectionException("Connection Failed");
+                sleep(5); // give cpu a rest
+                // now try to connect to the server
+                $result = socket_connect($socket, "127.0.0.1", (int)6661);
+                if ($result === false) {
+                    $errorCode = socket_last_error($socket);
+                    $errorMsg = socket_strerror($errorCode);
+                    error_log("Socket connection error $errorCode: $errorMsg");
+                    throw new CcdaServiceConnectionException("Connection Failed: $errorMsg");
                 }
             } else {
                 error_log("C-CDA Service is not enabled in Global Settings");

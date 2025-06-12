@@ -212,8 +212,8 @@ function DOBandEncounter($pc_eid)
      global $event_date,$info_msg;
      // Save new DOB if it's there.
      $patient_dob = trim($_POST['form_dob'] ?? '');
-     $tmph = $_POST['form_hour'] + 0;
-     $tmpm = $_POST['form_minute'] + 0;
+     $tmph = (int)$_POST['form_hour'];
+     $tmpm = (int)$_POST['form_minute'];
     if (!empty($_POST['form_ampm']) && ($_POST['form_ampm'] == '2' && $tmph < 12)) {
         $tmph += 12;
     }
@@ -383,22 +383,21 @@ if (!empty($_POST['form_action']) && ($_POST['form_action'] == "duplicate" || $_
         }
 
         $my_repeat_freq = implode(",", $days_every_week_arr);
-        $my_repeat_type = 6;
+        $my_repeat_type = 6; // Keep this as 6. It signifies days of the week recurrence.
         $event_date = setEventDate($_POST['form_date'], $my_repeat_freq);
     } elseif (!empty($_POST['form_repeat'])) {
         $my_recurrtype = 1;
-        if ($my_repeat_type > 4) {
+        if ($my_repeat_type > 6) { // Changed from 4 to 6 to accommodate new options.
             $my_recurrtype = 2;
             $time = strtotime($event_date);
             $my_repeat_on_day = 0 + date('w', $time);
             $my_repeat_on_freq = $my_repeat_freq;
-            if ($my_repeat_type == 5) {
+            if ($my_repeat_type == 5 || $my_repeat_type == 7 || $my_repeat_type == 8 || $my_repeat_type == 9) { //Added conditions for 7th, 8th, 9th.
                 $my_repeat_on_num = intval((date('j', $time) - 1) / 7) + 1;
             } else {
                 // Last occurence of this weekday on the month
-                $my_repeat_on_num = 5;
+                $my_repeat_on_num = 5; // Might need adjustment for new options.
             }
-
             // Maybe not needed, but for consistency with postcalendar:
             $my_repeat_freq = 0;
             $my_repeat_type = 0;
@@ -945,6 +944,8 @@ if ($groupid) {
  var mypcc = <?php echo js_escape($GLOBALS['phone_country_code']); ?>;
 
  var durations = new Array();
+
+ const IN_OFFICE_CAT_ID = '2';
 <?php
  // Read the event categories, generate their options list, and get
  // the default event duration from them if this is a new event.
@@ -1061,16 +1062,21 @@ function set_display() {
         var catid = s.options[s.selectedIndex].value;
         var style_apptstatus = document.getElementById('title_apptstatus').style;
         var style_prefcat = document.getElementById('title_prefcat').style;
-        if (catid == '2') { // In Office
+        if (catid == IN_OFFICE_CAT_ID) { // In Office
             style_apptstatus.display = 'none';
             style_prefcat.display = '';
             f.form_apptstatus.style.display = 'none';
             f.form_prefcat.style.display = '';
+            f.form_duration.disabled = true;
+            f.form_duration.value = '';
+            document.getElementById('tdallday4').style.color = 'var(--gray)';
         } else {
             style_prefcat.display = 'none';
             style_apptstatus.display = '';
             f.form_prefcat.style.display = 'none';
             f.form_apptstatus.style.display = '';
+            f.form_duration.disabled = false;
+            document.getElementById('tdallday4').style.color = '';
         }
     }
 }
@@ -1091,28 +1097,36 @@ function set_category() {
 // Modify some visual attributes when the all-day or timed-event
 // radio buttons are clicked.
 function set_allday() {
-    var f = document.forms[0];
-    var color1 = 'var(--gray)';
-    var color2 = 'var(--gray)';
-    var disabled2 = true;
+    const f = document.forms[0];
+    const s = f.form_category;
+    let color1 = 'var(--gray)';
+    let color2 = 'var(--gray)';
+    let timeDisabled = true;
+    let durationDisabled = true;
     if (document.getElementById('rballday1').checked) {
         color1 = '';
     }
     if (document.getElementById('rballday2').checked) {
         color2 = '';
-        disabled2 = false;
+        timeDisabled = false;
+        if (s.selectedIndex >= 0) {
+            var catid = s.options[s.selectedIndex].value;
+            if (catid != IN_OFFICE_CAT_ID) {
+                durationDisabled = false;
+            }
+        } else {
+            durationDisabled = false;
+        }
     }
     document.getElementById('tdallday1').style.color = color1;
     document.getElementById('tdallday2').style.color = color2;
-    //document.getElementById('tdallday3').style.color = color2;
-    document.getElementById('tdallday4').style.color = color2;
     document.getElementById('tdallday5').style.color = color2;
-    f.form_hour.disabled = disabled2;
-    f.form_minute.disabled = disabled2;
+    f.form_hour.disabled = timeDisabled;
+    f.form_minute.disabled = timeDisabled;
     <?php if ($GLOBALS['time_display_format'] == 1) { ?>
-        f.form_ampm.disabled = disabled2;
+        f.form_ampm.disabled = durationDisabled;
     <?php } ?>
-    f.form_duration.disabled = disabled2;
+    f.form_duration.disabled = durationDisabled;
 }
 
 // Modify some visual attributes when the Repeat checkbox is clicked.
@@ -1337,7 +1351,15 @@ function find_available(extra) {
         <?php endif ?>
     </ul>
 </nav> <!-- nav-group -->
-<form role="form" method='post' name='theform' id='theform' action='add_edit_event.php?eid=<?php echo attr($eid) ?>'>
+<?php
+$form_id = 'theform';
+if (!empty($_GET['prov']) && ($_GET['prov'] == true)) {
+    $form_id = 'theform_prov';
+} elseif ($_GET['group'] == true) {
+    $form_id = 'theform_groups';
+}
+?>
+<form role="form" method='post' name='<?php echo attr($form_id); ?>' id='<?php echo attr($form_id); ?>' action='add_edit_event.php?eid=<?php echo attr_url($eid) ?>'>
 
 <!-- ViSolve : Requirement - Redirect to Create New Patient Page -->
 <input type='hidden' size='2' name='resname' value='empty' />
@@ -1622,7 +1644,10 @@ function isRegularRepeat($repeat)
         <!-- dates excluded from the repeat -->
         <select class='col-sm form-control form-control-sm' name='form_repeat_freq' title='<?php echo xla('Every, every other, every 3rd, etc.'); ?>'>
             <?php
-            foreach (array(1 => xl('every'), 2 => xl('2nd{{every}}'), 3 => xl('3rd{{every}}'), 4 => xl('4th{{every}}'), 5 => xl('5th{{every}}'), 6 => xl('6th{{every}}')) as $key => $value) {
+            // Added options for 7th, 8th, and 9th.
+            $repeatOptions = [1 => xl('every'), 2 => xl('2nd{{every}}'), 3 => xl('3rd{{every}}'), 4 => xl('4th{{every}}'), 5 => xl('5th{{every}}'), 6 => xl('6th{{every}}'), 7 => xl('7th{{every}}'), 8 => xl('8th{{every}}'), 9 => xl('9th{{every}}') ];
+
+            foreach ($repeatOptions as $key => $value) {
                 echo "<option value='" . attr($key) . "'";
                 if ($key == $repeatfreq && isRegularRepeat($repeats)) {
                     echo " selected";
@@ -1704,7 +1729,10 @@ function isRegularRepeat($repeat)
 <div class="form-row mx-2">
     <div class="col-sm form-group">
         <label id='title_apptstatus'><?php echo xlt('Status'); ?>:</label>
-        <label id='title_prefcat' class='font-weight-bold' style='display:none'><?php echo xlt('Pref Cat'); ?>:</label>
+        <label id='title_prefcat' class='font-weight-bold' style='display:none'>
+            <?php echo xlt('Exclusive Category'); ?>:
+            <i class="text-muted font-weight-normal ml-1"><?php echo xlt('(If selected, you will only be shown as available for this category)'); ?></i>
+        </label>
         <?php
         if ($_GET['group'] != true) {
             generate_form_field(array('data_type' => 1, 'field_id' => 'apptstatus', 'list_id' => 'apptstat', 'empty_title' => 'SKIP'), ($row['pc_apptstatus'] ?? null));
@@ -1771,12 +1799,6 @@ if (empty($_GET['prov'])) { ?>
 
 <!-- form support functions-->
 <script>
-/* Form init functions */
-<?php if ($eid) { ?>
-    set_display();
-<?php } else { ?>
-    set_category();
-<?php } ?>
 set_allday();
 set_repeat();
 set_days_every_week();
@@ -1830,6 +1852,13 @@ $(function () {
     $("#form_apptstatus").addClass('form-control-sm');
     $("#form_room").addClass('form-control-sm');
     $(".current a").addClass('active');
+
+    /* Form init functions */
+    <?php if ($eid) { ?>
+        set_display();
+    <?php } else { ?>
+        set_category();
+    <?php } ?>
 });
 
 function are_days_checked(){
@@ -1849,6 +1878,44 @@ function are_days_checked(){
 * */
 var collectvalidation = <?php echo $collectthis; ?>;
 function validateform(event,valu){
+    collectvalidation.form_hour = {
+        numericality: {
+            onlyInteger: true,
+            greaterThanOrEqualTo: 0,
+            lessThanOrEqualTo: 23,
+            message: "must have a valid hour (0-23)"
+        },
+        presence: {
+            allowEmpty: false,
+            message: "Hour is required"
+        }
+    };
+
+    collectvalidation.form_minute = {
+        numericality: {
+            onlyInteger: true,
+            greaterThanOrEqualTo: 0,
+            lessThanOrEqualTo: 59,
+            message: "must have a valid minute (0-59)"
+        },
+        presence: {
+            allowEmpty: false,
+            message: "Minute is required"
+        }
+    };
+
+    collectvalidation.form_duration = {
+        numericality: {
+            onlyInteger: true,
+            greaterThan: 0,
+            message: "Must be a positive number"
+        },
+        presence: {
+            allowEmpty: false,
+            message: "Duration is required"
+        }
+    };
+
     $('#form_save').attr('disabled', true);
     //Make sure if days_every_week is checked that at least one weekday is checked.
     if($('#days_every_week').is(':checked') && !are_days_checked()){
@@ -1902,7 +1969,7 @@ function validateform(event,valu){
     }
     ?>
 
-    var submit = submitme(1, event, 'theform', collectvalidation);
+    var submit = submitme(1, event, <?php echo js_escape($form_id); ?>, collectvalidation);
     if(!submit)return $('#form_save').attr('disabled', false);
 
     $('#form_action').val(valu);
@@ -1923,11 +1990,11 @@ function validateform(event,valu){
 
 // disable all the form elements outside the recurr_popup
 function DisableForm() {
-    $("#theform").children().attr("disabled", "true");
+    $("#" + <?php echo js_escape($form_id); ?>).children().attr("disabled", "true");
 }
 
 function EnableForm() {
-    $("#theform").children().removeAttr("disabled");
+    $("#" + <?php echo js_escape($form_id); ?>).children().removeAttr("disabled");
 }
 
 // hide the recurring popup DIV

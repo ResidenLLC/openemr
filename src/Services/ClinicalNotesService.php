@@ -74,6 +74,8 @@ class ClinicalNotesService extends BaseService
                 ,notes.clinical_notes_type
                 ,notes.note_related_to
                 ,notes.clinical_notes_category
+                ,notes.last_updated
+                ,forms.date_created
                 ,lo_category.category_code
                 ,lo_category.category_title
                 ,patients.pid
@@ -100,6 +102,7 @@ class ClinicalNotesService extends BaseService
                         ,note_related_to
                         ,clinical_notes_category
                         ,form_id
+                        ,last_updated
                         ,user
                  FROM
                     form_clinical_notes
@@ -109,6 +112,7 @@ class ClinicalNotesService extends BaseService
                     id AS form_id,
                     encounter
                     ,pid AS form_pid
+                    ,`date` AS date_created
                 FROM
                     forms
             ) forms ON forms.form_id = notes.form_id
@@ -313,7 +317,8 @@ class ClinicalNotesService extends BaseService
             throw new \InvalidArgumentException("formid, and pid must all be populated");
         }
 
-        $sql = "SELECT fcn.*, lo_category.title AS category_title, lo_category.notes AS category_code
+        $sql = "SELECT fcn.*, lo_category.title AS category_title, lo_category.notes AS category_code,
+                lo_type.title AS type_title, lo_type.notes AS type_code
                 FROM `form_clinical_notes` fcn
                 LEFT JOIN list_options lo_category ON lo_category.list_id = 'Clinical_Note_Category' AND lo_category.option_id = fcn.clinical_notes_category
                 LEFT JOIN list_options lo_type ON lo_type.list_id = 'Clinical_Note_Type' AND lo_type.option_id = fcn.clinical_notes_type
@@ -368,7 +373,12 @@ class ClinicalNotesService extends BaseService
 
         $selectList = [];
         foreach ($optionsList as $option) {
-            $selectList[] = ['value' => $option['option_id'], 'code' => $option['notes'], 'title' => $option['title'], 'xlTitle' => xl_list_label($option['title'])];
+            $selectList[] = ['value' => $option['option_id']
+                , 'code' => $option['notes']
+                , 'title' => $option['title']
+                , 'xlTitle' => xl_list_label($option['title'])
+                , 'selected' => $option['is_default'] === 1
+            ];
         }
         return $selectList;
     }

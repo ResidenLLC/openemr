@@ -9,7 +9,7 @@
 # php-fpm Dockerfile build for openemr development docker environment
 # This docker is hosted here: https://hub.docker.com/r/openemr/dev-php-fpm/ <tag is 7.2>
 #
-FROM openemr/dev-php-fpm:pre-build-dev-84
+FROM php:8.4-fpm
 
 # Update
 RUN apt-get update
@@ -19,7 +19,12 @@ RUN apt-get update
 # Note this basically add 160MB of space to the docker, so would be nice for OpenEMR to not require this stuff
 #  and instead rely on php scripts, if possible.
 RUN apt-get install -y mariadb-client \
-                       imagemagick
+                       imagemagick \
+                       curl
+
+# Install correct version nodejs
+RUN curl -sL https://deb.nodesource.com/setup_20.x  | bash -
+RUN apt-get install nodejs -y
 
 # Add the php extensions (note using a very cool script by mlocati to do this)
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/

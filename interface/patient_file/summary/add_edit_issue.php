@@ -292,7 +292,8 @@ if (!empty($_POST['form_save'])) {
         $issueRecord['activity'] = 1;
         $issueRecord['user'] = $_SESSION['authUser'];
         $issueRecord['groupname'] = $_SESSION['authProvider'];
-        $patientIssuesService->createIssue($issueRecord);
+        $savedRecord = $patientIssuesService->createIssue($issueRecord);
+        $issue = $savedRecord['id'] ?? "";
     }
 
     // For record/reporting purposes, place entry in lists_touch table.
@@ -812,7 +813,10 @@ function getCodeText($code)
                                             $checked = ($index == $type_index) ? " checked" : '';
                                             $disabled = (!AclMain::aclCheckIssue($key, '', ['write', 'addonly'])) ? " disabled" : '';
                                             $str = '<input type="radio" name="form_type" value="%s" onclick="newtype(%s)" %s %s>';
-                                            echo vsprintf($str, [attr($index), attr_js($index), $checked, $disabled]);
+                                            if ($key != 'medical_device') { /* rm/brady millr - medical device does not work correctly */
+                                                echo vsprintf($str, [attr($index), attr_js($index), $checked, $disabled]);
+                                                echo text($value[1] . " "); /*rm - display issue type name */
+                                            }
                                         }
 
                                         ++$index;

@@ -654,6 +654,15 @@ CREATE TABLE `clinical_rules` (
   `web_reference` VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'Clinical Rule Web Reference',
   `linked_referential_cds` VARCHAR(50) NOT NULL DEFAULT '',
   `access_control` VARCHAR(255) NOT NULL DEFAULT 'patients:med' COMMENT 'ACO link for access control',
+  `patient_dob_usage` TEXT COMMENT 'Description of how patient DOB is used by this rule',
+  `patient_ethnicity_usage` TEXT COMMENT 'Description of how patient ethnicity is used by this rule',
+  `patient_health_status_usage` TEXT COMMENT 'Description of how patient health status assessments are used by this rule',
+  `patient_gender_identity_usage` TEXT COMMENT 'Description of how patient gender identity information is used by this rule',
+  `patient_language_usage` TEXT COMMENT 'Description of how patient language information is used by this rule',
+  `patient_race_usage` TEXT COMMENT 'Description of how patient race information is used by this rule',
+  `patient_sex_usage` TEXT COMMENT 'Description of how patient birth sex information is used by this rule',
+  `patient_sexual_orientation_usage` TEXT COMMENT 'Description of how patient sexual orientation is used by this rule',
+  `patient_sodh_usage` TEXT COMMENT 'Description of how patient social determinants of health are used by this rule',
   PRIMARY KEY  (`id`,`pid`)
 ) ENGINE=InnoDB;
 
@@ -1089,6 +1098,7 @@ CREATE TABLE `clinical_rules_log` (
   `category` VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'An example category is clinical_reminder_widget',
   `value` TEXT,
   `new_value` TEXT,
+  `facility_id` INT(11) DEFAULT '0' COMMENT 'facility where the rule was executed, 0 if unknown',
   PRIMARY KEY (`id`),
   KEY `pid` (`pid`),
   KEY `uid` (`uid`),
@@ -1144,6 +1154,7 @@ INSERT INTO `codes` (`code_text`,`code`,`code_type`) VALUES ('mg','C28253',112);
 --
 -- Table structure for table `contact`
 --
+DROP TABLE IF EXISTS `contact`;
 CREATE TABLE `contact` (
    `id` BIGINT(20) NOT NULL auto_increment,
    `foreign_table_name` VARCHAR(255) NOT NULL DEFAULT '',
@@ -1156,7 +1167,8 @@ CREATE TABLE `contact` (
 --
 -- Table structure for table `contact_address`
 --
-CREATE TABLE `contact_address` (
+DROP TABLE IF EXISTS `contact_address`;
+    CREATE TABLE `contact_address` (
     `id` BIGINT(20) NOT NULL auto_increment,
     `contact_id` BIGINT(20) NOT NULL,
     `address_id` BIGINT(20) NOT NULL,
@@ -1485,6 +1497,8 @@ CREATE TABLE `drugs` (
   `drug_code` varchar(25) NULL,
   `consumable` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 = will not show on the fee sheet',
   `dispensable` tinyint(1) NOT NULL DEFAULT 1 COMMENT '0 = pharmacy elsewhere, 1 = dispensed here',
+  `date_created` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY  (`drug_id`),
   UNIQUE KEY `uuid` (`uuid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1;
@@ -1526,7 +1540,7 @@ CREATE TABLE `eligibility_verification` (
 --
 -- Table structure for table `email_queue`
 --
-
+DROP TABLE IF EXISTS `email_queue`;
 CREATE TABLE `email_queue` (
   `id` bigint NOT NULL auto_increment,
   `sender` varchar(255) DEFAULT '',
@@ -1737,6 +1751,8 @@ CREATE TABLE `facility` (
   `info` TEXT,
   `weno_id` VARCHAR(10) DEFAULT NULL,
   `inactive` tinyint(1) NOT NULL DEFAULT '0',
+  `date_created` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY `uuid` (`uuid`),
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4;
@@ -1745,7 +1761,7 @@ CREATE TABLE `facility` (
 -- Inserting data for table `facility`
 --
 
-INSERT INTO `facility` VALUES (3, NULL, 'Your Clinic Name Here', '000-000-0000', '000-000-0000', '', '', '', '', '', '', NULL, NULL, 1, 1, 1, NULL, '', '', '', '', '', '','#99FFFF','0', '', '1', '', '', '', '', '', '', '', '', NULL, 0);
+INSERT INTO `facility` VALUES (3, NULL, 'Your Clinic Name Here', '000-000-0000', '000-000-0000', '', '', '', '', '', '', NULL, NULL, 1, 1, 1, NULL, '', '', '', '', '', '','#99FFFF','0', '', '1', '', '', '', '', '', '', '', '', NULL, 0, NOW(), NOW());
 
 -- --------------------------------------------------------
 
@@ -1761,12 +1777,14 @@ CREATE TABLE  `facility_user_ids` (
   `uuid` binary(16) DEFAULT NULL,
   `field_id`    varchar(31)  NOT NULL COMMENT 'references layout_options.field_id',
   `field_value` TEXT,
+  `date_created` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `uid` (`uid`,`facility_id`,`field_id`),
   KEY `uuid` (`uuid`)
 ) ENGINE=InnoDB  AUTO_INCREMENT=1;
 
------------------------------------------------------------
+-- ---------------------------------------------------------
 
 --
 -- Table structure for table `fee_schedule`
@@ -1786,7 +1804,7 @@ CREATE TABLE `fee_schedule` (
     UNIQUE KEY `ins_plan_code_mod_type_date` (`insurance_company_id`, `plan`, `code`, `modifier`, `type`, `effective_date`)
 ) ENGINE=InnoDb AUTO_INCREMENT=1;
 
------------------------------------------------------------
+-- ---------------------------------------------------------
 
 --
 -- Table structure for table `fee_sheet_options`
@@ -1839,6 +1857,7 @@ CREATE TABLE `form_clinical_notes` (
     `clinical_notes_type` varchar(100) DEFAULT NULL,
     `clinical_notes_category` varchar(100) DEFAULT NULL,
     `note_related_to` text,
+    `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uuid` (`uuid`)
 ) ENGINE=InnoDB;
@@ -2293,6 +2312,7 @@ CREATE TABLE `form_vitals` (
   `ped_bmi` DECIMAL(6,2) default '0.00',
   `ped_head_circ` DECIMAL(6,2) default '0.00',
   `inhaled_oxygen_concentration` DECIMAL(6,2) DEFAULT '0.00',
+  `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY  (`id`),
   KEY `pid` (`pid`),
   UNIQUE KEY `uuid` (`uuid`)
@@ -3137,6 +3157,8 @@ CREATE TABLE `insurance_companies` (
   `eligibility_id` VARCHAR(32) default NULL,
   `x12_default_eligibility_id` INT(11) default NULL,
   `cqm_sop` int DEFAULT NULL COMMENT 'HL7 Source of Payment for eCQMs',
+  `date_created` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY  (`id`),
   UNIQUE KEY `uuid` (`uuid`)
 ) ENGINE=InnoDB;
@@ -3715,6 +3737,7 @@ CREATE TABLE `list_options` (
   `subtype` varchar(31) NOT NULL DEFAULT '',
   `edit_options` tinyint(1) NOT NULL DEFAULT '1',
   `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY  (`list_id`,`option_id`)
 ) ENGINE=InnoDB;
 
@@ -4083,7 +4106,7 @@ INSERT INTO list_options ( list_id, option_id, title, seq, is_default, codes ) V
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default, codes ) VALUES ('drug_form','3','capsule'    ,3,0,'NCI-CONCEPT-ID:C25158');
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default, codes ) VALUES ('drug_form','4','solution'   ,4,0,'NCI-CONCEPT-ID:C42986');
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default, codes ) VALUES ('drug_form','5','tsp'        ,5,0,'NCI-CONCEPT-ID:C48544');
-INSERT INTO list_options ( list_id, option_id, title, seq, is_default, codes ) VALUES ('drug_form','6','ml'         ,6,0,'NCI-CONCEPT-ID:C28254');
+INSERT INTO list_options ( list_id, option_id, title, seq, is_default, codes ) VALUES ('drug_form','6','mL'         ,6,0,'NCI-CONCEPT-ID:C28254');
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default, codes ) VALUES ('drug_form','7','units'      ,7,0,'NCI-CONCEPT-ID:C44278');
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default, codes ) VALUES ('drug_form','8','inhalations',8,0,'NCI-CONCEPT-ID:C42944');
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default, codes ) VALUES ('drug_form','9','gtts(drops)',9,0,'NCI-CONCEPT-ID:C48491');
@@ -4106,10 +4129,10 @@ INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) V
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) VALUES ('drug_route', '3','To Skin'          , 3,0, 'OTH');
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) VALUES ('drug_route', '4','To Affected Area' , 4,0, 'OTH');
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) VALUES ('drug_route', '5','Sublingual'       , 5,0, 'OTH');
-INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) VALUES ('drug_route', '6','OS'               , 6,0, 'OTH');
-INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) VALUES ('drug_route', '7','OD'               , 7,0, 'OTH');
-INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) VALUES ('drug_route', '8','OU'               , 8,0, 'OTH');
-INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) VALUES ('drug_route', '9','SQ'               , 9,0, 'OTH');
+INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) VALUES ('drug_route', '6','Left Eye'         , 6,0, 'OTH');
+INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) VALUES ('drug_route', '7','Right Eye'        , 7,0, 'OTH');
+INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) VALUES ('drug_route', '8','Each Eye'         , 8,0, 'OTH');
+INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) VALUES ('drug_route', '9','Subcutaneous'     , 9,0, 'OTH');
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes, codes ) VALUES ('drug_route','10','IM'               ,10,0, 'IM', 'NCI-CONCEPT-ID:C28161');
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) VALUES ('drug_route','11','IV'               ,11,0, 'IV');
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default, notes ) VALUES ('drug_route','12','Per Nostril'      ,12,0, 'NS');
@@ -4131,7 +4154,7 @@ INSERT INTO list_options ( list_id, option_id, title, seq, is_default ) VALUES (
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default ) VALUES ('drug_interval','6','q.5h'  ,6,0);
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default ) VALUES ('drug_interval','7','q.6h'  ,7,0);
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default ) VALUES ('drug_interval','8','q.8h'  ,8,0);
-INSERT INTO list_options ( list_id, option_id, title, seq, is_default ) VALUES ('drug_interval','9','q.d.'  ,9,0);
+INSERT INTO list_options ( list_id, option_id, title, seq, is_default ) VALUES ('drug_interval','9','Daily' ,9,0);
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default ) VALUES ('drug_interval','10','a.c.'  ,10,0);
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default ) VALUES ('drug_interval','11','p.c.'  ,11,0);
 INSERT INTO list_options ( list_id, option_id, title, seq, is_default ) VALUES ('drug_interval','12','a.m.'  ,12,0);
@@ -7289,6 +7312,7 @@ CREATE TABLE `openemr_postcalendar_categories` (
   `pc_active` tinyint(1) NOT NULL default 1,
   `pc_seq` int(11) NOT NULL default '0',
   `aco_spec` VARCHAR(63) NOT NULL default 'encounters|notes',
+  `pc_last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY  (`pc_catid`),
   UNIQUE KEY (`pc_constant_id`),
   KEY `basic_cat` (`pc_catname`,`pc_catcolor`)
@@ -7298,21 +7322,37 @@ CREATE TABLE `openemr_postcalendar_categories` (
 -- Inserting data for table `openemr_postcalendar_categories`
 --
 
-INSERT INTO `openemr_postcalendar_categories` VALUES (1,'no_show', 'No Show', '#dee2e6', 'Reserved to define when an event did not occur as specified.', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 0, 0, 0, 0, 0, 0, 0,1,1,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (2,'in_office', 'In Office', '#cce5ff', 'Reserved todefine when a provider may haveavailable appointments after.', 1, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"1";s:22:"event_repeat_freq_type";s:1:"4";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 0, 1, 3, 2, 0, 0, 1,1,2,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (3,'out_of_office', 'Out Of Office', '#fdb172', 'Reserved to define when a provider may not have available appointments after.', 1, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"1";s:22:"event_repeat_freq_type";s:1:"4";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 0, 1, 3, 2, 0, 0, 1,1,3,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (4,'vacation', 'Vacation', '#e9ecef', 'Reserved for use to define Scheduled Vacation Time', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 0, 0, 0, 0, 1, 0, 1,1,4,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (5,'office_visit', 'Office Visit', '#ffecb4', 'Normal Office Visit', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 900, 0, 0, 0, 0, 0,0,1,5,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (6,'holidays','Holidays','#8663ba','Clinic holiday',0,NULL,'a:5:{s:17:"event_repeat_freq";s:1:"1";s:22:"event_repeat_freq_type";s:1:"4";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}',0,86400,1,3,2,0,0,2,1,6,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (7,'closed','Closed','#2374ab','Clinic closed',0,NULL,'a:5:{s:17:"event_repeat_freq";s:1:"1";s:22:"event_repeat_freq_type";s:1:"4";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}',0,86400,1,3,2,0,0,2,1,7,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (8,'lunch', 'Lunch', '#ffd351', 'Lunch', 1, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"1";s:22:"event_repeat_freq_type";s:1:"4";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 3600, 0, 3, 2, 0, 0, 1,1,8,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (9,'established_patient', 'Established Patient', '#93d3a2', '', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 900, 0, 0, 0, 0, 0, 0,1,9,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (10,'new_patient','New Patient', '#a2d9e2', '', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 1800, 0, 0, 0, 0, 0, 0,1,10,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (11,'reserved','Reserved','#b02a37','Reserved',1,NULL,'a:5:{s:17:\"event_repeat_freq\";s:1:\"1\";s:22:\"event_repeat_freq_type\";s:1:\"4\";s:19:\"event_repeat_on_num\";s:1:\"1\";s:19:\"event_repeat_on_day\";s:1:\"0\";s:20:\"event_repeat_on_freq\";s:1:\"0\";}',0,900,0,3,2,0,0, 1,1,11,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (12,'health_and_behavioral_assessment', 'Health and Behavioral Assessment', '#ced4da', 'Health and Behavioral Assessment', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 900, 0, 0, 0, 0, 0,0,1,12,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (13,'preventive_care_services', 'Preventive Care Services', '#d3c6ec', 'Preventive Care Services', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 900, 0, 0, 0, 0, 0,0,1,13,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (14,'ophthalmological_services', 'Ophthalmological Services', '#febe89', 'Ophthalmological Services', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 900, 0, 0, 0, 0, 0,0,1,14,'encounters|notes');
-INSERT INTO `openemr_postcalendar_categories` VALUES (15,'group_therapy', 'Group Therapy' , '#adb5bd' , 'Group Therapy', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 3600, 0, 0, 0, 0, 0, 3, 1, 15,'encounters|notes');
+
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (1,'no_show', 'No Show', '#dee2e6', 'Reserved to define when an event did not occur as specified.', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 0, 0, 0, 0, 0, 0, 0,1,1,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (2,'in_office', 'In Office', '#cce5ff', 'Reserved todefine when a provider may haveavailable appointments after.', 1, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"1";s:22:"event_repeat_freq_type";s:1:"4";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 0, 1, 3, 2, 0, 0, 1,1,2,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (3,'out_of_office', 'Out Of Office', '#fdb172', 'Reserved to define when a provider may not have available appointments after.', 1, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"1";s:22:"event_repeat_freq_type";s:1:"4";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 0, 1, 3, 2, 0, 0, 1,1,3,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (4,'vacation', 'Vacation', '#e9ecef', 'Reserved for use to define Scheduled Vacation Time', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 0, 0, 0, 0, 1, 0, 1,1,4,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (5,'office_visit', 'Office Visit', '#ffecb4', 'Normal Office Visit', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 900, 0, 0, 0, 0, 0,0,1,5,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (6,'holidays','Holidays','#8663ba','Clinic holiday',0,NULL,'a:5:{s:17:"event_repeat_freq";s:1:"1";s:22:"event_repeat_freq_type";s:1:"4";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}',0,86400,1,3,2,0,0,2,1,6,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (7,'closed','Closed','#2374ab','Clinic closed',0,NULL,'a:5:{s:17:"event_repeat_freq";s:1:"1";s:22:"event_repeat_freq_type";s:1:"4";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}',0,86400,1,3,2,0,0,2,1,7,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (8,'lunch', 'Lunch', '#ffd351', 'Lunch', 1, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"1";s:22:"event_repeat_freq_type";s:1:"4";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 3600, 0, 3, 2, 0, 0, 1,1,8,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (9,'established_patient', 'Established Patient', '#93d3a2', '', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 900, 0, 0, 0, 0, 0, 0,1,9,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (10,'new_patient','New Patient', '#a2d9e2', '', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 1800, 0, 0, 0, 0, 0, 0,1,10,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (11,'reserved','Reserved','#b02a37','Reserved',1,NULL,'a:5:{s:17:\"event_repeat_freq\";s:1:\"1\";s:22:\"event_repeat_freq_type\";s:1:\"4\";s:19:\"event_repeat_on_num\";s:1:\"1\";s:19:\"event_repeat_on_day\";s:1:\"0\";s:20:\"event_repeat_on_freq\";s:1:\"0\";}',0,900,0,3,2,0,0, 1,1,11,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (12,'health_and_behavioral_assessment', 'Health and Behavioral Assessment', '#ced4da', 'Health and Behavioral Assessment', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 900, 0, 0, 0, 0, 0,0,1,12,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (13,'preventive_care_services', 'Preventive Care Services', '#d3c6ec', 'Preventive Care Services', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 900, 0, 0, 0, 0, 0,0,1,13,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (14,'ophthalmological_services', 'Ophthalmological Services', '#febe89', 'Ophthalmological Services', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 900, 0, 0, 0, 0, 0,0,1,14,'encounters|notes');
+INSERT INTO `openemr_postcalendar_categories`(`pc_catid`, `pc_constant_id`, `pc_catname`, `pc_catcolor`, `pc_catdesc`, `pc_recurrtype`, `pc_enddate`, `pc_recurrspec`, `pc_recurrfreq`, `pc_duration`, `pc_end_date_flag`, `pc_end_date_type`, `pc_end_date_freq`, `pc_end_all_day`, `pc_dailylimit`, `pc_cattype`, `pc_active`, `pc_seq`, `aco_spec`)
+  VALUES (15,'group_therapy', 'Group Therapy' , '#adb5bd' , 'Group Therapy', 0, NULL, 'a:5:{s:17:"event_repeat_freq";s:1:"0";s:22:"event_repeat_freq_type";s:1:"0";s:19:"event_repeat_on_num";s:1:"1";s:19:"event_repeat_on_day";s:1:"0";s:20:"event_repeat_on_freq";s:1:"0";}', 0, 3600, 0, 0, 0, 0, 0, 3, 1, 15,'encounters|notes');
 
 -- --------------------------------------------------------
 
@@ -7521,6 +7561,7 @@ CREATE TABLE `patient_data` (
   `updated_by` BIGINT(20) DEFAULT NULL COMMENT 'users.id the user that last modified this record',
   `preferred_name` TINYTEXT,
   `nationality_country` TINYTEXT,
+  `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY `pid` (`pid`),
   UNIQUE KEY `uuid` (`uuid`),
   KEY `id` (`id`)
@@ -8632,6 +8673,7 @@ CREATE TABLE `session_tracker` (
   `uuid` binary(16) NOT NULL DEFAULT '',
   `created` timestamp NULL,
   `last_updated` timestamp NULL,
+  `number_scripts` bigint DEFAULT 1,
   PRIMARY KEY (`uuid`)
 ) ENGINE=InnoDB;
 
@@ -8801,6 +8843,10 @@ INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_re
 ('ICD10', 'CMS', '2023-10-01', 'Zip File 3 2024 ICD-10-PCS Codes File.zip', '30e096ed9971755c4dfc134b938f3c1f');
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
 ('CQM_VALUESET', 'NIH_VSAC', '2023-05-04', 'ec_only_cms_20230504.xml.zip', 'b77b3c2a88d23de0ec427c1cfc5088ce');
+INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
+('ICD10', 'CMS', '2024-10-01', 'icd10OrderFiles2025_0.zip', '783c2e3c92778295a76b8d7e0ebcf8fd');
+INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
+('ICD10', 'CMS', '2024-10-01', 'Zip File 3 2025 ICD-10-PCS Codes File.zip', 'a47ceb9a09fcc475fec19cee6526a335');
 -- --------------------------------------------------------
 
 --
@@ -8890,6 +8936,8 @@ CREATE TABLE `users` (
   `supervisor_id` int(11) NOT NULL DEFAULT '0',
   `billing_facility` TEXT,
   `billing_facility_id` INT(11) NOT NULL DEFAULT '0',
+  `date_created` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY  (`id`),
   UNIQUE KEY `uuid` (`uuid`),
   KEY `abook_type` (`abook_type`)
@@ -9338,6 +9386,8 @@ CREATE TABLE `procedure_providers` (
   `lab_director` bigint(20)   NOT NULL DEFAULT '0',
   `active`       tinyint(1)   NOT NULL DEFAULT '1',
   `type`         varchar(31)  DEFAULT NULL,
+  `date_created` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`ppid`),
   UNIQUE KEY `uuid` (`uuid`)
 ) ENGINE=InnoDB;
@@ -10569,7 +10619,7 @@ INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`, `notes`, `ac
 INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`, `notes`, `activity`) VALUES ('page_validation', 'tg_add#add-participant-form', '/interface/therapy_groups/index.php?method=groupParticipants', 130, '{"participant_name":{"presence": true}, "group_patient_start":{"presence": true}}', 1);
 INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`, `notes`, `activity`) VALUES ('page_validation', 'common#new-encounter-form', '/interface/forms/newGroupEncounter/common.php', 160, '{"pc_catid":{"exclusion": ["_blank"]}}', 1);
 INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`, `notes`, `activity`) VALUES ('page_validation', 'add_edit_event#theform_groups','/interface/main/calendar/add_edit_event.php?group=true',150, '{"form_group":{"presence": true}}', 1);
-INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`, `notes`, `activity`) VALUES ('page_validation', 'add_edit_event#theform_prov', '/interface/main/calendar/add_edit_event.php?prov=true', 170, '{}',  1);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`, `notes`, `activity`) VALUES ('page_validation', 'add_edit_event#theform_prov', '/interface/main/calendar/add_edit_event.php?prov=true', 170, '{"form_title":{"presence": {"message": "Title Required"}}}',  1);
 INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`, `notes`, `activity`) VALUES ('page_validation', 'messages#new_note','/interface/main/messages/messages.php',150, '{"form_datetime":{"futureDate":{"message": "Must be future date"}}, "reply_to":{"presence": {"message": "Please choose a patient"}}, "note":{"presence": {"message": "Please enter a note"}}}', 1);
 
 -- void reasons list
@@ -12179,9 +12229,14 @@ CREATE TABLE `form_taskman` (
 
 DROP TABLE IF EXISTS `product_registration`;
 CREATE TABLE `product_registration` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `email` varchar(255) NULL,
-  `opt_out` TINYINT(1) NULL,
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `email` VARCHAR(255) NULL,
+    `opt_out` TINYINT(1) NULL,
+    `auth_by_id` INT(11) NULL,
+    `telemetry_disabled` TINYINT(1) NULL COMMENT '1 opted out, disabled. NULL ask. 0 use option scopes',
+    `last_ask_date` DATETIME NULL,
+    `last_ask_version`TINYTEXT,
+    `options` TEXT COMMENT 'JSON array of scope options',
   PRIMARY KEY (id)
 ) ENGINE=InnoDB;
 
@@ -13089,6 +13144,7 @@ CREATE TABLE `oauth_clients` (
 `tos_uri` text,
 `is_enabled` tinyint(1) NOT NULL DEFAULT '0',
 `skip_ehr_launch_authorization_flow` tinyint(1) NOT NULL DEFAULT '0',
+`dsi_type` TINYINT UNSIGNED NOT NULL DEFAULT '1' COMMENT '0=none, 1=evidence-based,2=predictive',
 PRIMARY KEY (`client_id`)
 ) ENGINE=InnoDB;
 
@@ -13318,6 +13374,9 @@ CREATE TABLE `onetime_auth` (
     `expires` int(11) DEFAULT NULL,
     `date_created` datetime DEFAULT current_timestamp(),
     `last_accessed` datetime DEFAULT NULL,
+    `scope` tinytext COMMENT 'context scope for this token',
+    `profile` tinytext COMMENT 'profile of scope for this token',
+    `onetime_actions` text COMMENT 'JSON array of actions that can be performed with this token',
     PRIMARY KEY (`id`),
     KEY `pid` (`pid`,`onetime_token`(255))
 ) ENGINE=InnoDB;
@@ -13344,6 +13403,7 @@ INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('rec
 INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('recent_patient_columns', 'lname', 'Last Name', '30');
 INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('recent_patient_columns', 'DOB', 'Date of Birth', '40');
 
+DROP TABLE IF EXISTS `recent_patients`;
 CREATE TABLE recent_patients (
     user_id varchar(40) NOT NULL,
     patients TEXT,
@@ -13601,3 +13661,88 @@ INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`, `is_default`
 INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`, `is_default`, `option_value`, `mapping`, `notes`, `codes`) VALUES('nationality_with_country', 'YE', 'Yemeni', '2480', '0', '0', '', 'Yemen', 'YEM:887');
 INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`, `is_default`, `option_value`, `mapping`, `notes`, `codes`) VALUES('nationality_with_country', 'ZM', 'Zambian', '2490', '0', '0', '', 'Zambia', 'ZMB:894');
 INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`, `is_default`, `option_value`, `mapping`, `notes`, `codes`) VALUES('nationality_with_country', 'ZW', 'Zimbabwean', '2500', '0', '0', '', 'Zimbabwe', 'ZWE:716');
+
+DROP TABLE IF EXISTS `dsi_source_attributes`;
+CREATE TABLE `dsi_source_attributes` (
+ `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+ `client_id` VARCHAR(80) NOT NULL,
+ `list_id` VARCHAR(100) NOT NULL,
+ `option_id` VARCHAR(100) NOT NULL,
+ `clinical_rule_id` VARCHAR(31) DEFAULT NULL,
+ `source_value` TEXT,
+ `created_by` BIGINT(20) DEFAULT NULL,
+ `last_updated_by` BIGINT(20) DEFAULT NULL,
+ `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ `last_updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY (`id`),
+ UNIQUE (`list_id`, `option_id`, `client_id`)
+) ENGINE=InnoDB COMMENT = 'Holds information about decision support intervention system source attributes';
+
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`) VALUES ('lists', 'dsi_predictive_source_attributes', 'Predictive Decision Support Interventions Source Attributes');
+-- Populate list with ONC default values
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_details_developer', 'Name and contact information for the intervention developer', 10);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_details_funding', 'Funding source of the technical implementation for the intervention(s) development', 20);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_details_output_value', 'Description of value that the intervention produces as an output', 30);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_details_output_type', 'Whether the intervention output is a prediction, classification, recommendation, evaluation, analysis, or other type of output', 40);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_purpose_intended_use', 'Intended use of the intervention', 50);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_purpose_patient_population', 'Intended patient population(s) for the intervention''s use', 60);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_purpose_intended_users', 'Intended user(s)', 70);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_purpose_decision_role', 'Intended decision-making role for which the intervention was designed to be used/for (e_g_, informs, augments, replaces clinical management)', 80);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_cautions_inappropriate_use', 'Description of tasks, situations, or populations where a user is cautioned against applying the intervention', 90);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_cautions_risks', 'Known risks, inappropriate settings, inappropriate uses, or known limitations of the intervention', 100);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_development_criteria', 'Exclusion and inclusion criteria that influenced the training data set', 110);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_development_variables', 'Use of variables in paragraph US § 170.315 (b)(11)(iv)(A)(5)-(13) as input features (use of race, ethnicity, language, sexual orientation, gender identity, sex, date of birth, social determinants of health, and health status assessment)', 120);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_development_demographics', 'Description of demographic representativeness according to variables in paragraph US § 170.315 (b)(11)(iv)(A)(5)-(13) including, at a minimum, those used as input features in the intervention', 130);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_development_relevance', 'Description of relevance of training data to intended deployed setting', 140);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_fairness_approach', 'Description of the approach the intervention developer has taken to ensure that the intervention''s output is fair', 150);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_fairness_bias_mitigation', 'Description of approaches to manage, reduce, or eliminate bias', 160);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_validation_data_source', 'Description of the data source, clinical setting, or environment where an intervention''s validity and fairness has been assessed, other than the source of training and testing data', 170);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_validation_tester', 'Party that conducted the external testing', 180);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_validation_demographics', 'Description of demographic representativeness of external data according to variables in paragraph US § 170.315 (b)(11)(iv)(A)(5)-(13) including, at a minimum, those used as input features in the intervention', 190);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_validation_process', 'Description of external validation process', 200);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_performance_internal_validity', 'Validity of intervention in test data derived from the same source as the initial training data', 210);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_performance_internal_fairness', 'Fairness of intervention in test data derived from the same source as the initial training data', 220);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_performance_external_validity', 'Validity of intervention in data external to or from a different source than the initial training data', 230);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_performance_external_fairness', 'Fairness of intervention in data external to or from a different source than the initial training data', 240);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_performance_outcome_evaluation', 'References to evaluation of use of the intervention on outcomes, including, bibliographic citations or hyperlinks to evaluations of how well the intervention reduced morbidity, mortality, length of stay, or other outcomes', 250);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_maintenance_validity_monitoring', 'Description of process and frequency by which the intervention''s validity is monitored over time', 260);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_maintenance_local_validity', 'Validity of intervention in local data', 270);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_maintenance_fairness_monitoring', 'Description of the process and frequency by which the intervention''s fairness is monitored over time', 280);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_maintenance_local_fairness', 'Fairness of intervention in local data', 290);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_updates_process', 'Description of process and frequency by which the intervention is updated', 300);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_predictive_source_attributes', 'predictive_updates_correction', 'Description of frequency by which the intervention''s performance is corrected when risks related to validity and fairness are identified', 310);
+
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`) VALUES ('lists', 'dsi_evidence_source_attributes', 'Evidence Based Decision Support Interventions Source Attributes');
+-- Populate list with ONC default values
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_evidence_source_attributes', 'evidence_based_citation', 'Bibliographic citation of the intervention (clinical research or guideline)', 10);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_evidence_source_attributes', 'evidence_based_developer', 'Developer of the intervention (translation from clinical research or guideline)', 20);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_evidence_source_attributes', 'evidence_based_funding', 'Funding source of the technical implementation for the intervention(s) development', 30);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_evidence_source_attributes', 'evidence_based_dates', 'Release and, if applicable, revision dates of the intervention or reference source', 40);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_evidence_source_attributes', 'evidence_based_race', 'Intervention use of race as expressed in the standards in US § 170.213', 50);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_evidence_source_attributes', 'evidence_based_ethnicity', 'Intervention use of ethnicity as expressed in the standards in US § 170.213', 60);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_evidence_source_attributes', 'evidence_based_language', 'Intervention use of language as expressed in the standards in US § 170.213', 70);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_evidence_source_attributes', 'evidence_based_sexual_orientation', 'Intervention use of sexual orientation as expressed in the standards in US § 170.213', 80);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_evidence_source_attributes', 'evidence_based_gender_identity', 'Intervention use of gender identity as expressed in the standards in US § 170.213', 90);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_evidence_source_attributes', 'evidence_based_sex', 'Intervention use of sex as expressed in the standards in US § 170.213', 100);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_evidence_source_attributes', 'evidence_based_dob', 'Intervention use of date of birth as expressed in the standards in US § 170.213', 110);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_evidence_source_attributes', 'evidence_based_sdoh', 'Intervention use of social determinants of health data as expressed in the standards in US § 170.213', 120);
+INSERT INTO `list_options` (`list_id`, `option_id`, `title`, `seq`) VALUES ('dsi_evidence_source_attributes', 'evidence_based_health_status', 'Intervention use of health status assessments data as expressed in the standards in US § 170.213', 130);
+
+-- -----------------------------------------------------
+--
+-- Table structure for table 'track_events'
+--
+
+DROP TABLE IF EXISTS `track_events`;
+CREATE TABLE `track_events` (
+    `id`                  INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `event_type`     TEXT,
+    `event_label`    VARCHAR(255) DEFAULT NULL,
+    `event_url`       TEXT,
+    `event_target`  TEXT,
+    `first_event`     DATETIME NULL,
+    `last_event`     DATETIME NULL,
+    `label_count`    INT UNSIGNED NOT NULL DEFAULT 1,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_event_label_target` (`event_label`, `event_url`(255), `event_target`(255))
+) ENGINE = InnoDB COMMENT = 'Telemetry Event Data';
