@@ -55,8 +55,8 @@ jobs:
                   file: docker/residen-production/Dockerfile
                   tags: ${{ steps.metadata.outputs.tags }}
                   outputs: type=image,oci-mediatypes=true,compression=zstd,compression-level=3,force-compression=true
-                  cache-from: type=registry,ref=${{ steps.ecr-login.outputs.registry }}/${{ vars.AWS_ECR_NAME }}:buildcache-dev
-                  cache-to: type=registry,ref=${{ steps.ecr-login.outputs.registry }}/${{ vars.AWS_ECR_NAME }}:buildcache-dev,mode=max
+                  # cache-from: type=registry,ref=${{ steps.ecr-login.outputs.registry }}/${{ vars.AWS_ECR_NAME }}:buildcache-dev
+                  # cache-to: type=registry,ref=${{ steps.ecr-login.outputs.registry }}/${{ vars.AWS_ECR_NAME }}:buildcache-dev,mode=max
                   platforms: linux/amd64
                   provenance: false
 
