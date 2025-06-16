@@ -2616,6 +2616,90 @@ paths:
             security:
                 -
                     openemr_auth: []
+        put:
+            tags:
+                - standard
+            description: 'Updates an existing appointment'
+            parameters:
+                -   name: pid
+                    in: path
+                    description: 'The id for the patient.'
+                    required: true
+                    schema:
+                        type: string
+                -   name: eid
+                    in: path
+                    description: 'The eid for the appointment.'
+                    required: true
+                    schema:
+                        type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            required:
+                                - pc_catid
+                                - pc_title
+                                - pc_duration
+                                - pc_hometext
+                                - pc_apptstatus
+                                - pc_eventDate
+                                - pc_startTime
+                                - pc_facility
+                                - pc_billing_location
+                            properties:
+                                pc_catid:
+                                    description: 'The category of the appointment.'
+                                    type: string
+                                pc_title:
+                                    description: 'The title of the appointment.'
+                                    type: string
+                                pc_duration:
+                                    description: 'The duration of the appointment.'
+                                    type: string
+                                pc_hometext:
+                                    description: 'Comments for the appointment.'
+                                    type: string
+                                pc_apptstatus:
+                                    description: 'use an option from resource=/api/list/apptstat'
+                                    type: string
+                                pc_eventDate:
+                                    description: 'The date of the appointment.'
+                                    type: string
+                                pc_startTime:
+                                    description: 'The time of the appointment.'
+                                    type: string
+                                pc_facility:
+                                    description: 'The facility id of the appointment.'
+                                    type: string
+                                pc_billing_location:
+                                    description: 'The billing location id of the appointment.'
+                                    type: string
+                                pc_aid:
+                                    description: 'The provider id for the appointment.'
+                                    type: string
+                            type: object
+                            example:
+                                pc_catid: '5'
+                                pc_title: 'Office Visit'
+                                pc_duration: '900'
+                                pc_hometext: 'Test'
+                                pc_apptstatus: '-'
+                                pc_eventDate: '2018-10-19'
+                                pc_startTime: '09:00'
+                                pc_facility: '9'
+                                pc_billing_location: '10'
+                                pc_aid: '1'
+            responses:
+                '200':
+                    $ref: '#/components/responses/standard'
+                '400':
+                    $ref: '#/components/responses/badrequest'
+                '401':
+                    $ref: '#/components/responses/unauthorized'
+            security:
+                -   openemr_auth: [ ]
         delete:
             tags:
                 - standard
