@@ -125,6 +125,7 @@ jobs:
                         "  echo \"MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASS }}\" >> /home/ubuntu/.db_env",
                         "  echo \"COUCHDB_USER=${{ secrets.MYSQL_USER }}\" >> /home/ubuntu/.db_env",
                         "  echo \"COUCHDB_PASSWORD=${{ secrets.MYSQL_PASS }}\" >> /home/ubuntu/.db_env",
+                        "  echo \"COUCHDB_SECRET=${{ secrets.COUCHDB_SECRET }}\" >> /home/ubuntu/.db_env",
                         "  ",
                         "  # Create application environment file", 
                         "  echo \"# TFA Residen EMR Secrets\" > /home/ubuntu/.app_env",
