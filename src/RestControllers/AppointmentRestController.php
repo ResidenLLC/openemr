@@ -90,4 +90,18 @@ class AppointmentRestController
         }
         return RestControllerHelper::responseHandler($serviceResult, null, 200);
     }
+
+    public function put($pid, $eid, $data)
+    {
+        $data['pid'] = $pid;
+        $validationResult = $this->appointmentService->validate($data);
+
+        $validationHandlerResult = RestControllerHelper::validationHandler($validationResult);
+        if (is_array($validationHandlerResult)) {
+            return $validationHandlerResult;
+        }
+
+        $serviceResult = $this->appointmentService->update($eid, $data);
+        return RestControllerHelper::responseHandler(array("id" => $eid), null, 200);
+    }
 }
