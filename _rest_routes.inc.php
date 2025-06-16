@@ -5381,6 +5381,110 @@ RestConfig::$ROUTE_MAP = array(
     },
 
     /**
+     *  @OA\Put(
+     *      path="/api/patient/{pid}/appointment/{eid}",
+     *      description="Updates an existing appointment",
+     *      tags={"standard"},
+     *      @OA\Parameter(
+     *          name="pid",
+     *          in="path",
+     *          description="The id for the patient.",
+     *          required=true,
+     *          @OA\Schema(
+     *              type="string"
+     *          )
+     *      ),
+     *      @OA\Parameter(
+     *          name="eid",
+     *          in="path",
+     *          description="The eid for the appointment.",
+     *          required=true,
+     *          @OA\Schema(
+     *              type="string"
+     *          )
+     *      ),
+     *      @OA\RequestBody(
+     *          required=true,
+     *          @OA\MediaType(
+     *              mediaType="application/json",
+     *              @OA\Schema(
+     *                  @OA\Property(
+     *                      property="pc_catid",
+     *                      description="The category of the appointment.",
+     *                      type="string"
+     *                  ),
+     *                  @OA\Property(
+     *                      property="pc_title",
+     *                      description="The title of the appointment.",
+     *                      type="string"
+     *                  ),
+     *                  @OA\Property(
+     *                      property="pc_duration",
+     *                      description="The duration of the appointment.",
+     *                      type="string"
+     *                  ),
+     *                  @OA\Property(
+     *                      property="pc_hometext",
+     *                      description="Comments for the appointment.",
+     *                      type="string"
+     *                  ),
+     *                  @OA\Property(
+     *                      property="pc_apptstatus",
+     *                      description="use an option from resource=/api/list/apptstat",
+     *                      type="string"
+     *                  ),
+     *                  @OA\Property(
+     *                      property="pc_eventDate",
+     *                      description="The date of the appointment.",
+     *                      type="string"
+     *                  ),
+     *                  @OA\Property(
+     *                      property="pc_startTime",
+     *                      description="The time of the appointment.",
+     *                      type="string"
+     *                  ),
+     *                  @OA\Property(
+     *                      property="pc_facility",
+     *                      description="The facility id of the appointment.",
+     *                      type="string"
+     *                  ),
+     *                  @OA\Property(
+     *                      property="pc_billing_location",
+     *                      description="The billing location id of the appointment.",
+     *                      type="string"
+     *                  ),
+     *                  @OA\Property(
+     *                      property="pc_aid",
+     *                      description="The provider id for the appointment.",
+     *                      type="string"
+     *                  )
+     *              )
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response="200",
+     *          ref="#/components/responses/standard"
+     *      ),
+     *      @OA\Response(
+     *          response="400",
+     *          ref="#/components/responses/badrequest"
+     *      ),
+     *      @OA\Response(
+     *          response="401",
+     *          ref="#/components/responses/unauthorized"
+     *      ),
+     *      security={{"openemr_auth":{}}}
+     *  )
+     */
+    "PUT /api/patient/:pid/appointment/:eid" => function ($pid, $eid) {
+        RestConfig::authorization_check("patients", "appt");
+        $data = (array) (json_decode(file_get_contents("php://input")));
+        $return = (new AppointmentRestController())->put($pid, $eid, $data);
+        RestConfig::apiLog($return, $data);
+        return $return;
+    },
+
+    /**
      *  @OA\Get(
      *      path="/api/list/{list_name}",
      *      description="Retrieves a list",

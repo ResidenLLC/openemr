@@ -671,4 +671,49 @@ class AppointmentService extends BaseService
         // TODO: look at handling offset and limit here
         return $processingResult;
     }
+    public function update($eid, $data)
+    {
+        $startUnixTime = strtotime($data['pc_startTime']);
+        $startTime = date('H:i:s', $startUnixTime);
+
+        // DateInterval _needs_ a valid constructor, so set it to 0s then update.
+        $endTimeInterval = new \DateInterval('PT0S');
+        $endTimeInterval->s = $data['pc_duration'];
+
+        $endTime = (new \DateTime())->setTimestamp($startUnixTime)->add($endTimeInterval);
+
+        $sql  = " UPDATE openemr_postcalendar_events SET";
+        $sql .= "     pc_catid=?,";
+        $sql .= "     pc_title=?,";
+        $sql .= "     pc_duration=?,";
+        $sql .= "     pc_hometext=?,";
+        $sql .= "     pc_eventDate=?,";
+        $sql .= "     pc_apptstatus=?,";
+        $sql .= "     pc_startTime=?,";
+        $sql .= "     pc_endTime=?,";
+        $sql .= "     pc_facility=?,";
+        $sql .= "     pc_billing_location=?,";
+        $sql .= "     pc_aid=?";
+        $sql .= " WHERE pc_eid=?";
+
+        $results = sqlStatement(
+            $sql,
+            array(
+                $data["pc_catid"],
+                $data["pc_title"],
+                $data["pc_duration"],
+                $data["pc_hometext"],
+                $data["pc_eventDate"],
+                $data['pc_apptstatus'],
+                $startTime,
+                $endTime->format('H:i:s'),
+                $data["pc_facility"],
+                $data["pc_billing_location"],
+                $data["pc_aid"] ?? null,
+                $eid
+            )
+        );
+
+        return $results;
+    }
 }
