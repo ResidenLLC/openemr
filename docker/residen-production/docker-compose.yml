@@ -1,27 +1,9 @@
 version: '3.8'
 services:
-  mysql:
-    restart: always
-    image: mariadb:10.11
-    container_name: openemr_db
-    command: ['mysqld','--character-set-server=utf8mb4']
-    volumes:
-      - /home/ubuntu/openemr_data:/var/lib/mysql
-    env_file:
-      - .env
-  couchdb:
-    image: couchdb:3.3.3
-    container_name: openemr_couchdb
-    ports:
-      - "5984:5984"
-    env_file:
-      - .env
-    volumes:
-      - couchdb_data:/opt/couchdb/data
   openemr:
-    restart: always
     image: REPLACEME_ECR_URL
     container_name: openemr
+    restart: unless-stopped
     ports:
       - 8080:80
       - 8443:443
@@ -29,10 +11,29 @@ services:
       - logvolume01:/var/log
       - sitevolume:/var/www/localhost/htdocs/openemr/sites
     env_file:
-      - .env
+      - .app_env
     depends_on:
       - mysql
       - couchdb
+  mysql:
+    image: mariadb:10.11
+    container_name: openemr_db
+    restart: unless-stopped
+    command: ['mysqld','--character-set-server=utf8mb4']
+    volumes:
+      - /home/ubuntu/openemr_data:/var/lib/mysql
+    env_file:
+      - .db_env
+  couchdb:
+    image: couchdb:3.3.3
+    container_name: openemr_couchdb
+    restart: unless-stopped
+    ports:
+      - "5984:5984"
+    env_file:
+      - .db_env
+    volumes:
+      - couchdb_data:/opt/couchdb/data
 volumes:
   logvolume01:
     driver_opts:
