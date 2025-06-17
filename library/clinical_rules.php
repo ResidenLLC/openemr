@@ -1625,8 +1625,8 @@ function test_filter($patient_id, $rule, $dateTarget)
 
     // -------- Age Filter (inclusion) ------------
     // Calculate patient age in years and months as of $dateTarget timepoint
-    $patientAgeYears = convertDobtoAgeYearDecimal($patientData['DOB_TS'], $dateTarget);
-    $patientAgeMonths = convertDobtoAgeMonthDecimal($patientData['DOB_TS'], $dateTarget);
+    $patientAgeYears = 0; //convertDobtoAgeYearDecimal($patientData['DOB_TS'], $dateTarget);
+    $patientAgeMonths = 0; //convertDobtoAgeMonthDecimal($patientData['DOB_TS'], $dateTarget);
 
     // Min age (year) Filter (assume that there in not more than one of each)
     $filter = resolve_filter_sql($rule, 'filt_age_min');
