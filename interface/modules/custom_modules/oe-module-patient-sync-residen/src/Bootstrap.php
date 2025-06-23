@@ -1,13 +1,17 @@
 <?php
 namespace OpenEMR\Modules\PatientSync;
+
 use OpenEMR\Common\Logging\SystemLogger;
 use OpenEMR\Events\Patient\PatientCreatedEvent;
 use OpenEMR\Events\Patient\PatientUpdatedEvent;
 use OpenEMR\Events\Patient\PatientBeforeDeleteEvent;
 use OpenEMR\Events\Globals\GlobalsInitializedEvent;
+use OpenEMR\Events\RestApiExtend\RestApiCreateEvent;
+use OpenEMR\Events\RestApiExtend\RestApiScopeEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use OpenEMR\Core\Kernel;
 use OpenEMR\Services\Globals\GlobalSetting;
+
 
 
 class Bootstrap
@@ -102,6 +106,8 @@ class Bootstrap
         if ($this->globalsConfig->isConfigured()) {
             $this->registerPatientCreate();
             $this->registerPatientModified();
+            $this->registerPaymentApi();
+            $this->registerApiScopes();
         }
     }
 
@@ -119,6 +125,51 @@ class Bootstrap
             $this->eventDispatcher->addListener(PatientUpdatedEvent::EVENT_HANDLE, [$this, 'onPatientUpdated']);
             //$this->logger->debug("Registered patient update listener");
         }
+    }
+
+    public function registerPaymentApi()
+    {
+        if ($this->getGlobalConfig()->getGlobalSetting(GlobalConfig::CONFIG_ENABLE_PATIENTS_SYNC)) {
+            $this->eventDispatcher->addListener(RestApiCreateEvent::EVENT_HANDLE, [$this, 'addPaymentApi']);
+        }
+    }
+
+    public function registerApiScopes()
+    {
+        $this->eventDispatcher->addListener(RestApiScopeEvent::EVENT_TYPE_GET_SUPPORTED_SCOPES, [$this, 'addApiScopes']);
+    }
+
+    public function addApiScopes(RestApiScopeEvent $event)
+    {
+        if ($event->getApiType() == RestApiScopeEvent::API_TYPE_STANDARD) {
+            $scopes = $event->getScopes();
+            $scopes[] = 'user/payment.write';
+            $scopes[] = 'patient/payment.write';
+            if (\RestConfig::areSystemScopesEnabled()) {
+                $scopes[] = 'system/payment.write';
+            }
+            $event->setScopes($scopes);
+        }
+        return $event;
+    }
+
+    public function addPaymentApi(RestApiCreateEvent $event)
+    {
+        $paymentController = new PaymentRestController();
+        
+        // Add the payment route
+        $event->addToRouteMap(
+            "POST /api/patient/:pid/encounter/:aid/payment",
+            function ($pid, $aid) use ($paymentController) {
+                // Check authorization
+                \RestConfig::authorization_check("patients", "bill");
+                
+                $data = (array)(json_decode(file_get_contents("php://input")));
+                return $paymentController->processPayment($pid, $aid, $data);
+            }
+        );
+
+        return $event;
     }
 
     public function onPatientCreated(PatientCreatedEvent $event)
