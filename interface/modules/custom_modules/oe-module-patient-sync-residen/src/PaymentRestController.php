@@ -26,15 +26,6 @@ class PaymentRestController
                 ];
             }
 
-            // Validate numeric values
-            if (!is_numeric($data['amount']) || $data['amount'] <= 0) {
-                return [
-                    'statusCode' => 400,
-                    'success' => false,
-                    'error' => "Invalid amount value. Must be a positive number."
-                ];
-            }
-
             if (!is_string($data['method']) || empty(trim($data['method']))) {
                 return [
                     'statusCode' => 400,

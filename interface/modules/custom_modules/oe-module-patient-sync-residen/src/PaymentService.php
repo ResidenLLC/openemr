@@ -42,9 +42,41 @@ class PaymentService extends BaseService
                 return ['success' => false, 'error' => "Encounter $encounterId does not belong to patient $pid"];
             }
 
-            // Format the payment data for payments table
             $currentDateTime = date('Y-m-d H:i:s');
             $currentDate = date('Y-m-d');
+            
+            // First create ar_session record
+            $sessionId = sqlInsert(
+                "INSERT INTO ar_session SET
+                payer_id = 0,
+                patient_id = ?,
+                user_id = ?,
+                closed = 0,
+                reference = ?,
+                check_date = ?,
+                deposit_date = ?,
+                pay_total = ?,
+                payment_type = 'patient',
+                description = ?,
+                adjustment_code = 'patient_payment',
+                post_to_date = ?,
+                payment_method = ?",
+                array(
+                    $pid,
+                    $_SESSION['authUserID'] ?? 0,
+                    $source,
+                    $currentDate,
+                    $currentDate,
+                    $amount,
+                    $description,
+                    $currentDate,
+                    $method
+                )
+            );
+
+            if (!$sessionId) {
+                return ['success' => false, 'error' => 'Failed to create payment session'];
+            }
 
             // Insert into payments table
             $paymentId = sqlInsert(
@@ -81,36 +113,33 @@ class PaymentService extends BaseService
             );
             $sequence_no = $seq['next_seq'] ?? 1;
 
-            // Insert into ar_activity
+            // Insert into ar_activity using the session_id
             $arActivity = sqlInsert(
                 "INSERT INTO ar_activity SET
                 pid = ?,
                 encounter = ?,
                 sequence_no = ?,
-                code_type = ?,
-                code = ?,
-                modifier = ?,
+                code_type = '',
+                code = '',
+                modifier = '',
                 payer_type = ?,
                 post_time = ?,
                 post_user = ?,
                 session_id = ?,
                 pay_amount = ?,
                 adj_amount = ?,
-                memo = ?",
+                memo = '',
+                account_code = 'PP'",
                 array(
                     $pid,
                     $encounterId,
                     $sequence_no,
-                    'PAYMENT',
-                    $method,
-                    '',
                     0,
                     $currentDateTime,
                     $_SESSION['authUserID'] ?? 0,
-                    $paymentId,
+                    $sessionId,
                     $amount,
-                    '0.00',
-                    $description
+                    '0.00'
                 )
             );
 
@@ -121,8 +150,10 @@ class PaymentService extends BaseService
             return [
                 'success' => true,
                 'payment_id' => $paymentId,
+                'session_id' => $sessionId,
                 'message' => "Payment recorded successfully"
             ];
+
         } catch (\Exception $e) {
             $this->logger->errorLogCaller($e->getMessage(), ['pid' => $pid, 'encounter' => $encounterId]);
             return ['success' => false, 'error' => 'Internal server error'];
