@@ -4,96 +4,129 @@ namespace OpenEMR\Modules\PatientSync;
 
 use OpenEMR\Common\Logging\SystemLogger;
 use OpenEMR\Services\BaseService;
+use OpenEMR\Services\PatientService;
+use OpenEMR\Services\EncounterService;
 
 class PaymentService extends BaseService
 {
     const TABLE_NAME = 'payments';
     private $logger;
+    private $patientService;
+    private $encounterService;
 
     public function __construct()
     {
         parent::__construct(self::TABLE_NAME);
         $this->logger = new SystemLogger();
+        $this->patientService = new PatientService();
+        $this->encounterService = new EncounterService();
     }
 
-    public function recordPayment($pid, $eid, $amount, $method, $source, $description = '')
+    public function recordPayment($pid, $encounterId, $amount, $method, $source, $description = '')
     {
         try {
-            // Validate inputs
-            if (!is_numeric($pid) || !is_numeric($eid) || !is_numeric($amount)) {
-                return ['error' => 'Invalid input parameters'];
+            // Validate patient exists
+            $patient = $this->patientService->findByPid($pid);
+            if (empty($patient)) {
+                return ['success' => false, 'error' => "Patient with ID $pid not found"];
             }
 
-            global $authUser, $authUserID;
-            $user = $authUser ?? ($_SESSION['authUser'] ?? 'api');
-            $userId = $authUserID ?? ($_SESSION['authUserID'] ?? 0);
-            $timestamp = date('Y-m-d H:i:s');
-
-            // Insert into ar_session
-            $session_id = sqlInsert(
-                "INSERT INTO ar_session (payer_id, patient_id, user_id, closed, reference, check_date, deposit_date, pay_total, payment_type, description, adjustment_code, post_to_date, payment_method) VALUES (?, ?, ?, 0, ?, NOW(), NOW(), ?, 'patient', ?, 'patient_payment', NOW(), ?)",
-                [0, $pid, $userId, $source, $amount, $description, $method]
-            );
-
-            if (!$session_id) {
-                return ['error' => 'Failed to insert ar_session'];
+            // Validate encounter exists and belongs to patient
+            $encounterResult = $this->encounterService->getEncounterById($encounterId);
+            if (!$encounterResult->hasData()) {
+                return ['success' => false, 'error' => "Encounter with ID $encounterId not found"];
+            }
+            
+            $encounter = $encounterResult->getData()[0];
+            if ($encounter['pid'] != $pid) {
+                return ['success' => false, 'error' => "Encounter $encounterId does not belong to patient $pid"];
             }
 
-            // Get code_type, code, modifier for this encounter (optional, fallback to empty)
-            $row = sqlQuery(
-                "SELECT code_type, code, modifier FROM billing WHERE pid=? AND encounter=? AND activity=1 LIMIT 1",
-                [$pid, $eid]
+            // Format the payment data for payments table
+            $currentDateTime = date('Y-m-d H:i:s');
+            $currentDate = date('Y-m-d');
+            
+            // Insert into payments table
+            $paymentId = sqlInsert(
+                "INSERT INTO payments SET
+                pid = ?,
+                dtime = ?,
+                encounter = ?,
+                user = ?,
+                method = ?,
+                source = ?,
+                amount1 = ?,
+                amount2 = 0.00,
+                posted1 = 0.00,
+                posted2 = 0.00",
+                array(
+                    $pid,
+                    $currentDateTime,
+                    $encounterId,
+                    $_SESSION['authUser'] ?? 'api',
+                    $method,
+                    $source,
+                    $amount
+                )
             );
 
-            // Get next sequence_no
+            if (!$paymentId) {
+                return ['success' => false, 'error' => 'Failed to insert payment record'];
+            }
+
+            // Get next sequence_no for ar_activity
             $seq = sqlQuery(
-                "SELECT IFNULL(MAX(sequence_no),0) + 1 AS increment FROM ar_activity WHERE pid = ? AND encounter = ?",
-                [$pid, $eid]
+                "SELECT IFNULL(MAX(sequence_no),0) + 1 AS next_seq FROM ar_activity WHERE pid = ? AND encounter = ?",
+                array($pid, $encounterId)
             );
-            $sequence_no = $seq['increment'] ?? 1;
+            $sequence_no = $seq['next_seq'] ?? 1;
 
             // Insert into ar_activity
-            $activity_id = sqlInsert(
-                "INSERT INTO ar_activity (pid, encounter, sequence_no, payer_type, post_time, post_user, session_id, pay_amount, adj_amount, account_code) VALUES (?, ?,  ?, 0, NOW(), ?, ?, ?, 0, 'PP')",
-                [$pid, $eid, $sequence_no, $userId, $session_id, $amount]
+            $arActivity = sqlInsert(
+                "INSERT INTO ar_activity SET
+                pid = ?,
+                encounter = ?,
+                sequence_no = ?,
+                code_type = ?,
+                code = ?,
+                modifier = ?,
+                payer_type = ?,
+                post_time = ?,
+                post_user = ?,
+                session_id = ?,
+                pay_amount = ?,
+                adj_amount = ?,
+                memo = ?",
+                array(
+                    $pid,
+                    $encounterId,
+                    $sequence_no,
+                    'PAYMENT',
+                    $method,
+                    '',
+                    0,
+                    $currentDateTime,
+                    $_SESSION['authUserID'] ?? 0,
+                    $paymentId,
+                    $amount,
+                    '0.00',
+                    $description
+                )
             );
-            if (!$activity_id) {
-                return ['error' => 'Failed to insert ar_activity'];
+
+            if (!$arActivity) {
+                return ['success' => false, 'error' => 'Failed to insert ar_activity'];
             }
 
-            $this->logger->debug("ar_activity insert values", [
-                'pid' => $pid,
-                'eid' => $eid,
-                'sequence_no' => $sequence_no,
-                'code_type' => $row['code_type'] ?? 'COPAY',
-                'code' => $row['code'] ?? 'COPAY',
-                'modifier' => $row['modifier'] ?? '',
-                'userId' => $userId,
-                'session_id' => $session_id,
-                'amount' => $amount
-            ]);
+            return [
+                'success' => true,
+                'payment_id' => $paymentId,
+                'message' => "Payment recorded successfully"
+            ];
 
-            // Insert into payments
-            $payment_id = sqlInsert(
-                "INSERT INTO payments (pid, encounter, dtime, user, method, source, amount1, amount2) VALUES (?, ?, ?, ?, ?, ?, ?, 0)",
-                [$pid, $eid, $timestamp, $user, $method, $source, $amount]
-            );
-            if (!$payment_id) {
-                return ['error' => 'Failed to insert payments'];
-            }
-
-
-            if ($payment_id) {
-                return ['payment_id' => $payment_id];
-            } else {
-                throw new \Exception("Failed to insert payment record");
-            }
         } catch (\Exception $e) {
-            $this->logger->error(
-                "Error recording payment",
-                ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]
-            );
-            return ['error' => 'Failed to record payment: ' . $e->getMessage()];
+            $this->logger->errorLogCaller($e->getMessage(), ['pid' => $pid, 'encounter' => $encounterId]);
+            return ['success' => false, 'error' => 'Internal server error'];
         }
     }
 }

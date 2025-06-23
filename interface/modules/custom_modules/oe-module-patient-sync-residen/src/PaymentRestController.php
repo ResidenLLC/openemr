@@ -20,34 +20,69 @@ class PaymentRestController
         try {
             if (!isset($data['amount'], $data['method'], $data['source'])) {
                 return [
-                    "success" => false,
-                    "error" => "Missing required fields: amount, method, or source."
+                    'statusCode' => 400,
+                    'success' => false,
+                    'error' => "Missing required fields: amount, method, or source."
                 ];
             }
 
-            $amount = (float)$data['amount'];
-            $method = $data['method'];
-            $source = $data['source'];
-            $description = $data['description'] ?? '';
-
-            $result = $this->paymentService->recordPayment($pid, $aid, $amount, $method, $source, $description);
-
-            if ($result && isset($result['payment_id'])) {
+            // Validate numeric values
+            if (!is_numeric($data['amount']) || $data['amount'] <= 0) {
                 return [
-                    "success" => true,
-                    "payment_id" => $result['payment_id']
-                ];
-            } else {
-                return [
-                    "success" => false,
-                    "error" => $result['error'] ?? 'Failed to record payment.'
+                    'statusCode' => 400,
+                    'success' => false,
+                    'error' => "Invalid amount value. Must be a positive number."
                 ];
             }
-        } catch (\Exception $e) {
-            $this->logger->error("Payment processing error", ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+
+            if (!is_string($data['method']) || empty(trim($data['method']))) {
+                return [
+                    'statusCode' => 400,
+                    'success' => false,
+                    'error' => "Invalid payment method. Must be a non-empty string."
+                ];
+            }
+
+            if (!is_string($data['source']) || empty(trim($data['source']))) {
+                return [
+                    'statusCode' => 400,
+                    'success' => false,
+                    'error' => "Invalid payment source. Must be a non-empty string."
+                ];
+            }
+
+            $result = $this->paymentService->recordPayment(
+                $pid,
+                $aid,
+                $data['amount'],
+                $data['method'],
+                $data['source'],
+                $data['description'] ?? ''
+            );
+
+            if (!$result['success']) {
+                return [
+                    'statusCode' => 400,
+                    'success' => false,
+                    'error' => $result['error']
+                ];
+            }
+
             return [
-                "success" => false,
-                "error" => "Internal server error processing payment."
+                'statusCode' => 200,
+                'success' => true,
+                'data' => [
+                    'payment_id' => $result['payment_id'],
+                    'message' => $result['message']
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            $this->logger->errorLogCaller($e->getMessage(), ['pid' => $pid, 'encounter' => $aid]);
+            return [
+                'statusCode' => 500,
+                'success' => false,
+                'error' => 'Internal server error'
             ];
         }
     }
