@@ -36,7 +36,7 @@ class PaymentService extends BaseService
             if (!$encounterResult->hasData()) {
                 return ['success' => false, 'error' => "Encounter with ID $encounterId not found"];
             }
-            
+
             $encounter = $encounterResult->getData()[0];
             if ($encounter['pid'] != $pid) {
                 return ['success' => false, 'error' => "Encounter $encounterId does not belong to patient $pid"];
@@ -45,7 +45,7 @@ class PaymentService extends BaseService
             // Format the payment data for payments table
             $currentDateTime = date('Y-m-d H:i:s');
             $currentDate = date('Y-m-d');
-            
+
             // Insert into payments table
             $paymentId = sqlInsert(
                 "INSERT INTO payments SET
@@ -123,7 +123,6 @@ class PaymentService extends BaseService
                 'payment_id' => $paymentId,
                 'message' => "Payment recorded successfully"
             ];
-
         } catch (\Exception $e) {
             $this->logger->errorLogCaller($e->getMessage(), ['pid' => $pid, 'encounter' => $encounterId]);
             return ['success' => false, 'error' => 'Internal server error'];

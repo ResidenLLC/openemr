@@ -76,7 +76,6 @@ class PaymentRestController
                     'message' => $result['message']
                 ]
             ];
-
         } catch (\Exception $e) {
             $this->logger->errorLogCaller($e->getMessage(), ['pid' => $pid, 'encounter' => $aid]);
             return [
@@ -86,4 +85,4 @@ class PaymentRestController
             ];
         }
     }
-} 
+}
