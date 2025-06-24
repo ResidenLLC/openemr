@@ -7,6 +7,9 @@ use OpenEMR\Services\BaseService;
 use OpenEMR\Services\PatientService;
 use OpenEMR\Services\EncounterService;
 
+// Ensure the frontPayment function is available
+require_once $GLOBALS['fileroot'] . '/library/payment.inc.php';
+
 class PaymentService extends BaseService
 {
     const TABLE_NAME = 'payments';
@@ -78,32 +81,19 @@ class PaymentService extends BaseService
                 return ['success' => false, 'error' => 'Failed to create payment session'];
             }
 
-            // Insert into payments table
-            $paymentId = sqlInsert(
-                "INSERT INTO payments SET
-                pid = ?,
-                dtime = ?,
-                encounter = ?,
-                user = ?,
-                method = ?,
-                source = ?,
-                amount1 = ?,
-                amount2 = 0.00,
-                posted1 = 0.00,
-                posted2 = 0.00",
-                array(
-                    $pid,
-                    $currentDateTime,
-                    $encounterId,
-                    $_SESSION['authUser'] ?? 'api',
-                    $method,
-                    $source,
-                    $amount
-                )
+            // Use the global frontPayment function to insert into the payments table
+            $paymentId = frontPayment(
+                $pid,
+                $encounterId,
+                $method,
+                $source,
+                $amount,
+                0.00, // amount2
+                $currentDateTime
             );
 
             if (!$paymentId) {
-                return ['success' => false, 'error' => 'Failed to insert payment record'];
+                return ['success' => false, 'error' => 'Failed to insert payment record using frontPayment'];
             }
 
             // Get next sequence_no for ar_activity
