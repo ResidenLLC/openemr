@@ -2562,7 +2562,6 @@ RestConfig::$ROUTE_MAP = array(
         return $return;
     },
 
-
     /**
      *  @OA\Get(
      *      path="/api/practitioner",
