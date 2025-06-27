@@ -156,6 +156,7 @@ function calcTaxes($row, $amount)
 $now = time();
 $today = date('Y-m-d', $now);
 $timestamp = date('Y-m-d H:i:s', $now);
+$last90Days = date('Y-m-d', (strtotime('-90 day', strtotime($today))));
 
 $patdata = sqlQuery("SELECT " .
     "p.fname, p.mname, p.lname, p.pubpid,p.pid, i.copay " .
@@ -1589,6 +1590,7 @@ function make_insurance() {
                                     <input type='hidden' name='payment' id='paymentAmount' value='' />
                                     <input type='hidden' name='invValues' id='invValues' value='' />
                                     <input type='hidden' name='encs' id='encs' value='' />
+                                    <input type='hidden' name='user_initials' id='user_initials' value='' />
                                 </fieldset>
                             </form>
                         <?php } ?>
@@ -1605,6 +1607,46 @@ function make_insurance() {
                             if ($GLOBALS['payment_gateway'] == 'Stripe') { ?>
                                 <button id="stripeSubmit" class="btn btn-primary"><?php echo xlt('Pay Now'); ?></button>
                             <?php } ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- credit payment confirmation modal -->
+        <div id="openConfirmTransanctionModal" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content" style="min-height: 375px;">
+                    <div class="modal-header">
+                        <h4><?php echo xlt('Confirm Transaction Amount'); ?></h4>
+                    </div>
+                    <div class="modal-body">
+                        <fieldset>
+                            <div class="form-group p-2 mb-0">
+                                <label class="control-label"><?php echo xlt('Amount to be charged:'); ?>
+                                    <span id="amountCharged" class="text-success"></span>
+                                </label>
+                            </div>
+                            <div class="form-group p-2 mb-0">
+                                <div class="row">
+                                    <div class="col-sm-8 pr-0">
+                                        <label for="your_initials" class="control-label mt-1"><?php echo xlt('Please enter your initials to proceed:'); ?></label>
+                                    </div>
+                                    <div class="col-sm-4 pl-0">
+                                        <input name="your_initials" id="your_initials" type="text" class="form-control" title="<?php echo xla('Your initials'); ?>"/>
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="form-group p-2 text-danger mb-0" id="your-initials-errors" role="alert"></div>
+                            <input type='hidden' name='stripeToken' id='stripeToken' value='' />
+                        </fieldset>
+                    </div>
+                    <!-- Body  -->
+                    <div class="modal-footer">
+                        <div class="button-group">
+                            <button id="cancelStripeSubmit" type="button" class="btn btn-default" data-dismiss="modal"><?php echo xlt('Cancel'); ?></button>
+                            <button id="confirmStripeSubmit" class="btn btn-primary"><?php echo xlt('Confirm'); ?></button>
                         </div>
                     </div>
                 </div>
@@ -1628,7 +1670,7 @@ function make_insurance() {
                                             "DATE_FORMAT(p.dtime,'%M %d %Y') AS dtime, ".
                                             "SUM(p.amount1 + p.amount2) AS amount, p.encounter " .
                                             "FROM  payments AS p " .
-                                            "WHERE p.pid = ? AND p.source <> '' " .
+                                            "WHERE p.pid = ? AND p.source <> '' AND p.dtime >= '" . $last90Days . "' " .
                                             "GROUP BY charge_source, p.encounter " .
                                             "HAVING amount > 0 " .
                                             "ORDER BY p.dtime DESC";
@@ -1824,14 +1866,50 @@ function make_insurance() {
                             errorElement.textContent = result.error.message;
                             $('#stripeSubmit').attr('disabled', false);
                         } else {
-                            // Send the token to server.
-                            stripeTokenHandler(result.token);
+                            // open confirm payment modal
+                            $("#amountCharged").text("$" + $("#paymentAmount").val());
+                            $('#stripeToken').val(result.token.id)
+                            $('#openConfirmTransanctionModal').modal();
+                            $("#openPayModal").hide();
+                            $('#stripeSubmit').attr('disabled', false);
                         }
                     });
                 });
 
+                $('#your_initials').change(function () {
+                    let displayError = $('#your-initials-errors');
+                    let yourInitials = $('#your_initials').val();
+                    if (!yourInitials) {
+                        displayError.html('Please enter your initials!');
+                    } else {
+                        displayError.html('');
+                        $('#confirmStripeSubmit').attr('disabled', false);
+                    }
+                });
+
+                $("#openConfirmTransanctionModal").on("hide.bs.modal", function () {
+                    $("#openPayModal").show();
+                });
+
+
+                let formConfirmStripe = document.getElementById('confirmStripeSubmit');
+                formConfirmStripe.addEventListener('click', function (event) {
+                    $('#confirmStripeSubmit').attr('disabled', true);
+                    event.preventDefault();
+                    let yourInitials = $('#your_initials').val();
+                    if (!yourInitials) {
+                        $('#your-initials-errors').html('Please enter your initials!');
+                        $('#confirmStripeSubmit').attr('disabled', false);
+                    } else {
+                        // Send the token to server.
+                        let stripeToken = $('#stripeToken').val();
+                        stripeTokenHandler(stripeToken);
+                        $('#stripeToken').val('');
+                    }
+                });
+
                 // Submit the form with the token ID.
-                function stripeTokenHandler(token) {
+                function stripeTokenHandler(token_id) {
                     // below for manual cc audit
                     const encDates = (() => {
                         let i = 0, c;
@@ -1857,11 +1935,12 @@ function make_insurance() {
                     let oForm = document.forms['payment-form'];
                     oForm.elements['mode'].value = "Stripe";
                     oForm.elements['encs'].value = encDates;
+                    oForm.elements['user_initials'].value = $('#your_initials').val();
 
                     let hiddenInput = document.createElement('input');
                     hiddenInput.setAttribute('type', 'hidden');
                     hiddenInput.setAttribute('name', 'stripeToken');
-                    hiddenInput.setAttribute('value', token.id);
+                    hiddenInput.setAttribute('value', token_id);
                     oForm.appendChild(hiddenInput);
 
                     // Submit payment to server
@@ -1884,9 +1963,13 @@ function make_insurance() {
                         $("[name='form_save']").click();
                         $('#stripeSubmit').attr('disabled', false);
                         $("#check_number").attr('disabled', true);
+                        $('#openConfirmTransanctionModal').modal('toggle');
+                        $('#confirmStripeSubmit').attr('disabled', false);
                     }).catch(function (error) {
                         alert(error.message);
                         $('#stripeSubmit').attr('disabled', false);
+                        $('#confirmStripeSubmit').attr('disabled', false);
+                        $('#openConfirmTransanctionModal').modal('toggle');
                     });
                 }
                 // terminal

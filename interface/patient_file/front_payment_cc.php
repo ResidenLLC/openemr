@@ -95,7 +95,7 @@ if ($_POST['mode'] == 'Stripe') {
         'Invoice Number' => $pd['pubpid'] . '.' . $encounter,
         'Invoice Total' => $transaction['amount'],
         'User Id' => $_SESSION['authUserID'],
-        'User Name' => $userData['lname'] . ' ' . $userData['fname'] . ' ' . $userData['mname'],
+        'User Name / User Initials' => $userData['lname'] . ' ' . $userData['fname'] . ' ' . $userData['mname'] . ' / ' . $_POST['user_initials'],
         'Residen EHR Id' => $dbase
     ];
     try {
