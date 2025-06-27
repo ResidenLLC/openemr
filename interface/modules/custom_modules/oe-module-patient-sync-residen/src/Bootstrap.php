@@ -108,6 +108,7 @@ class Bootstrap
             $this->registerPatientModified();
             $this->registerPaymentApi();
             $this->registerApiScopes();
+            $this->registerAppointmentCategoryApi();
         }
     }
 
@@ -139,14 +140,22 @@ class Bootstrap
         $this->eventDispatcher->addListener(RestApiScopeEvent::EVENT_TYPE_GET_SUPPORTED_SCOPES, [$this, 'addApiScopes']);
     }
 
+    public function registerAppointmentCategoryApi()
+    {
+        $this->eventDispatcher->addListener(RestApiCreateEvent::EVENT_HANDLE, [$this, 'addAppointmentCategoryApi']);
+    }
+
     public function addApiScopes(RestApiScopeEvent $event)
     {
         if ($event->getApiType() == RestApiScopeEvent::API_TYPE_STANDARD) {
             $scopes = $event->getScopes();
             $scopes[] = 'user/payment.write';
             $scopes[] = 'patient/payment.write';
+            $scopes[] = 'user/appointments_category.read';
+            $scopes[] = 'patient/appointments_category.read';
             if (\RestConfig::areSystemScopesEnabled()) {
                 $scopes[] = 'system/payment.write';
+                $scopes[] = 'system/appointments_category.read';
             }
             $event->setScopes($scopes);
         }
@@ -156,19 +165,32 @@ class Bootstrap
     public function addPaymentApi(RestApiCreateEvent $event)
     {
         $paymentController = new PaymentRestController();
-        
         // Add the payment route
         $event->addToRouteMap(
             "POST /api/patient/:pid/encounter/:aid/payment",
             function ($pid, $aid) use ($paymentController) {
                 // Check authorization
                 \RestConfig::authorization_check("patients", "bill");
-                
+
                 $data = (array)(json_decode(file_get_contents("php://input")));
                 return $paymentController->processPayment($pid, $aid, $data);
             }
         );
 
+        return $event;
+    }
+
+    public function addAppointmentCategoryApi(RestApiCreateEvent $event)
+    {
+        $controller = new AppointmentCategoryRestController();
+        $event->addToRouteMap(
+            "GET /api/appointments_category",
+            function () use ($controller) {
+                \RestConfig::authorization_check("admin", "super"); // Adjust as needed
+                \RestConfig::scope_check("user", "appointments_category", "read");
+                return $controller->getCategories();
+            }
+        );
         return $event;
     }
 
