@@ -109,6 +109,7 @@ class Bootstrap
             $this->registerPaymentApi();
             $this->registerApiScopes();
             $this->registerAppointmentCategoryApi();
+            $this->registerAppointmentStatusApi();
         }
     }
 
@@ -145,6 +146,11 @@ class Bootstrap
         $this->eventDispatcher->addListener(RestApiCreateEvent::EVENT_HANDLE, [$this, 'addAppointmentCategoryApi']);
     }
 
+    public function registerAppointmentStatusApi()
+    {
+        $this->eventDispatcher->addListener(RestApiCreateEvent::EVENT_HANDLE, [$this, 'addAppointmentStatusApi']);
+    }
+
     public function addApiScopes(RestApiScopeEvent $event)
     {
         if ($event->getApiType() == RestApiScopeEvent::API_TYPE_STANDARD) {
@@ -153,9 +159,12 @@ class Bootstrap
             $scopes[] = 'patient/payment.write';
             $scopes[] = 'user/appointments_category.read';
             $scopes[] = 'patient/appointments_category.read';
+            $scopes[] = 'user/appointments_status.read';
+            $scopes[] = 'patient/appointments_status.read';
             if (\RestConfig::areSystemScopesEnabled()) {
                 $scopes[] = 'system/payment.write';
                 $scopes[] = 'system/appointments_category.read';
+                $scopes[] = 'system/appointments_status.read';
             }
             $event->setScopes($scopes);
         }
@@ -189,6 +198,20 @@ class Bootstrap
                 \RestConfig::authorization_check("admin", "super"); // Adjust as needed
                 \RestConfig::scope_check("user", "appointments_category", "read");
                 return $controller->getCategories();
+            }
+        );
+        return $event;
+    }
+
+    public function addAppointmentStatusApi(RestApiCreateEvent $event)
+    {
+        $controller = new AppointmentStatusRestController();
+        $event->addToRouteMap(
+            "GET /api/appointments_status",
+            function () use ($controller) {
+                \RestConfig::authorization_check("admin", "users"); // Adjust as needed
+                \RestConfig::scope_check("user", "appointments_status", "read");
+                return $controller->getStatuses();
             }
         );
         return $event;
