@@ -1,0 +1,257 @@
+name: Build and Deploy Production Multi Site OpenEMR Docker to AWS EC2
+run-name: Production Multi Site Build & Deploy - nr. ${{ github.run_number }}
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - production
+
+permissions:
+  id-token: write
+  packages: write
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push-app:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Get Tags for Image
+        id: metadata
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ steps.ecr-login.outputs.registry }}/${{ vars.AWS_ECR_NAME }}
+          tags: |
+            type=raw,value=production
+            type=sha,prefix=residen-emr-,suffix=
+
+      - name: Build and Push
+        id: build-image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          file: docker/residen-production/Dockerfile
+          tags: ${{ steps.metadata.outputs.tags }}
+          # cache-from: type=registry,ref=${{ steps.ecr-login.outputs.registry }}/${{ vars.AWS_ECR_NAME }}:buildcache-dev
+          # cache-to: type=registry,ref=${{ steps.ecr-login.outputs.registry }}/${{ vars.AWS_ECR_NAME }}:buildcache-dev,mode=max
+          platforms: linux/amd64
+          provenance: false
+
+      - name: Save ECR URL as Artifact
+        run: echo "${{ steps.ecr-login.outputs.registry }}/${{ vars.AWS_ECR_NAME }}" > ecr-url.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ecr-url
+          path: ecr-url.txt
+
+  deploy-app-prod:
+    needs: build-and-push-app
+    name: Deploy Docker Image to AWS EC2 - Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_SSM_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SSM_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ecr-url
+        
+      - name: Read ECR URL from Artifact
+        id: ecr-url
+        run: |
+          ECR_URL=$(cat ecr-url.txt)
+          echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
+
+      - name: Prepare Docker Compose file to Base64
+        id: encode-docker-compose
+        run: |
+          sed -i 's|REPLACEME_ECR_URL|${{ env.ECR_URL }}:production|g' docker/residen-production/prod-compose.yml
+          DOCKER_COMPOSE_BASE64=$(cat docker/residen-production/prod-compose.yml | base64 -w 0)
+          echo "DOCKER_COMPOSE_BASE64=$DOCKER_COMPOSE_BASE64" >> $GITHUB_ENV
+
+      - name: Deploy App to Each Instance
+        run: |
+          PAIR=(${{ vars.EHR_INSTANCE_ID }})
+          INSTANCE_ID=$(echo $PAIR | cut -d ':' -f 1)
+          DOMAIN_NAME=$(echo $PAIR | cut -d ':' -f 2)
+
+          echo "Deploying to instance $INSTANCE_ID, for Doctor $DOMAIN_NAME."
+          echo "This is a test for an env var: '$DOMAIN_NAME'"
+
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --instance-ids "$INSTANCE_ID" \
+            --parameters '{
+              "commands": [
+                "sudo -u ubuntu bash -c '\''",
+                "  # Decode and save docker-compose.yml",
+                "  echo -e \"${{ env.DOCKER_COMPOSE_BASE64 }}\" | base64 -d > /home/ubuntu/docker-compose.yml",
+                "  ",
+                "  # Create database environment file",
+                "  echo \"# TFA Residen EMR Secrets\" > /home/ubuntu/.db_env",
+                "  echo \"MYSQL_USER=${{ secrets.MYSQL_USER }}\" >> /home/ubuntu/.db_env",
+                "  echo \"MYSQL_PASSWORD=${{ secrets.MYSQL_PASS }}\" >> /home/ubuntu/.db_env", 
+                "  echo \"MYSQL_DATABASE=openemr\" >> /home/ubuntu/.db_env",
+                "  echo \"MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASS }}\" >> /home/ubuntu/.db_env",
+                "  echo \"COUCHDB_USER=${{ secrets.MYSQL_USER }}\" >> /home/ubuntu/.db_env",
+                "  echo \"COUCHDB_PASSWORD=${{ secrets.MYSQL_PASS }}\" >> /home/ubuntu/.db_env",
+                "  echo \"COUCHDB_SECRET=${{ secrets.COUCHDB_SECRET }}\" >> /home/ubuntu/.db_env",
+                "  ",
+                "  # Create application environment file", 
+                "  echo \"# TFA Residen EMR Secrets\" > /home/ubuntu/.app_env",
+                "  echo \"OE_USER=${{ secrets.OE_USER }}\" >> /home/ubuntu/.app_env",
+                "  echo \"OE_PASS=${{ secrets.OE_PASS }}\" >> /home/ubuntu/.app_env",
+                "  ",
+                "  # Create necessary directories",
+                "  mkdir -p /home/ubuntu/openemr_logs",
+                "  mkdir -p /home/ubuntu/openemr_sites",
+                "  ",
+                "  # Login to ECR and deploy",
+                "  aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_URL }}",
+                "  cd /home/ubuntu",
+                "  docker compose pull",
+                "  docker compose up -d", 
+                "  docker system prune -af",
+                "'\''"]
+            }' \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "Command ID: $COMMAND_ID for instance $INSTANCE_ID"
+
+          # Check command execution status
+          until [ "$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "CommandInvocations[0].Status" --output text)" != "InProgress" ]; do
+            echo "Waiting for command to complete on instance $INSTANCE_ID..."
+            sleep 10
+          done
+
+          STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "CommandInvocations[0].Status" --output text)
+          echo "Command execution status for instance $INSTANCE_ID: $STATUS"
+          if [ "$STATUS" != "Success" ]; then
+            echo "Command execution failed on instance $INSTANCE_ID."
+            exit 1
+          fi
+
+  deploy-app-hilder:
+    needs: build-and-push-app
+    name: Deploy Docker Image to AWS EC2 - Dr. Hilder
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_SSM_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SSM_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ecr-url
+        
+      - name: Read ECR URL from Artifact
+        id: ecr-url
+        run: |
+          ECR_URL=$(cat ecr-url.txt)
+          echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
+
+      - name: Prepare Docker Compose file to Base64
+        id: encode-docker-compose
+        run: |
+          sed -i 's|REPLACEME_ECR_URL|${{ env.ECR_URL }}:hilder|g' docker/residen-production/docker-compose.yml
+          DOCKER_COMPOSE_BASE64=$(cat docker/residen-production/docker-compose.yml | base64 -w 0)
+          echo "DOCKER_COMPOSE_BASE64=$DOCKER_COMPOSE_BASE64" >> $GITHUB_ENV
+
+      - name: Deploy App to Each Instance
+        run: |
+          PAIR=(${{ vars.DR_HILDER }})
+          INSTANCE_ID=$(echo $PAIR | cut -d ':' -f 1)
+          DOMAIN_NAME=$(echo $PAIR | cut -d ':' -f 2)
+
+          echo "Deploying to instance $INSTANCE_ID, for Doctor $DOMAIN_NAME."
+          echo "This is a test for an env var: '$DOMAIN_NAME'"
+
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --instance-ids "$INSTANCE_ID" \
+            --parameters '{
+              "commands": [
+                "sudo -u ubuntu bash -c '\''",
+                "  # Decode and save docker-compose.yml",
+                "  echo -e \"${{ env.DOCKER_COMPOSE_BASE64 }}\" | base64 -d > /home/ubuntu/docker-compose.yml",
+                "  ",
+                "  # Create database environment file",
+                "  echo \"# TFA Residen EMR Secrets\" > /home/ubuntu/.db_env",
+                "  echo \"MYSQL_USER=${{ secrets.MYSQL_USER }}\" >> /home/ubuntu/.db_env",
+                "  echo \"MYSQL_PASSWORD=${{ secrets.MYSQL_PASS }}\" >> /home/ubuntu/.db_env", 
+                "  echo \"MYSQL_DATABASE=openemr\" >> /home/ubuntu/.db_env",
+                "  echo \"MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASS }}\" >> /home/ubuntu/.db_env",
+                "  echo \"COUCHDB_USER=${{ secrets.MYSQL_USER }}\" >> /home/ubuntu/.db_env",
+                "  echo \"COUCHDB_PASSWORD=${{ secrets.MYSQL_PASS }}\" >> /home/ubuntu/.db_env",
+                "  echo \"COUCHDB_SECRET=${{ secrets.COUCHDB_SECRET }}\" >> /home/ubuntu/.db_env",
+                "  ",
+                "  # Create application environment file", 
+                "  echo \"# TFA Residen EMR Secrets\" > /home/ubuntu/.app_env",
+                "  echo \"OE_USER=${{ secrets.OE_USER }}\" >> /home/ubuntu/.app_env",
+                "  echo \"OE_PASS=${{ secrets.OE_PASS }}\" >> /home/ubuntu/.app_env",
+                "  ",
+                "  # Create necessary directories",
+                "  mkdir -p /home/ubuntu/openemr_logs",
+                "  mkdir -p /home/ubuntu/openemr_sites",
+                "  ",
+                "  # Login to ECR and deploy",
+                "  aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_URL }}",
+                "  cd /home/ubuntu",
+                "  docker compose pull",
+                "  docker compose up -d", 
+                "  docker system prune -af",
+                "'\''"]
+            }' \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "Command ID: $COMMAND_ID for instance $INSTANCE_ID"
+
+          # Check command execution status
+          until [ "$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "CommandInvocations[0].Status" --output text)" != "InProgress" ]; do
+            echo "Waiting for command to complete on instance $INSTANCE_ID..."
+            sleep 10
+          done
+
+          STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "CommandInvocations[0].Status" --output text)
+          echo "Command execution status for instance $INSTANCE_ID: $STATUS"
+          if [ "$STATUS" != "Success" ]; then
+            echo "Command execution failed on instance $INSTANCE_ID."
+            exit 1
+          fi
