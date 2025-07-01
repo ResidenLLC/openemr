@@ -1,0 +1,41 @@
+version: '3.8'
+services:
+  openemr:
+    image: REPLACEME_ECR_URL
+    container_name: openemr
+    restart: unless-stopped
+    ports:
+      - 8080:80
+      - 8443:443
+    volumes:
+      - logvolume01:/var/log
+      - sitevolume:/var/www/localhost/htdocs/openemr/sites
+    env_file:
+      - .app_env
+    depends_on:
+      - mysql
+  mysql:
+    image: mariadb:10.11
+    container_name: openemr_db
+    restart: unless-stopped
+    command: ['mysqld','--character-set-server=utf8mb4']
+    volumes:
+      - mysql_data:/var/lib/mysql
+    env_file:
+      - .db_env
+volumes:
+  logvolume01:
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/ubuntu/openemr_logs
+  sitevolume:
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/ubuntu/openemr_sites
+  mysql_data:
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/ubuntu/openemr_data
