@@ -1,0 +1,81 @@
+version: '3.8'
+services:
+  openemr:
+    image: REPLACEME_ECR_URL
+    container_name: openemr
+    restart: unless-stopped
+    ports:
+      - 8080:80
+      - 8443:443
+    volumes:
+      - logvolume01:/var/log
+      - sitevolume:/var/www/localhost/htdocs/openemr/sites
+    env_file:
+      - .app_env
+    depends_on:
+      - mysql
+      - couchdb
+  mysql:
+    image: mariadb:10.11
+    container_name: openemr_db
+    restart: unless-stopped
+    command: ['mysqld','--character-set-server=utf8mb4']
+    volumes:
+      - mysql_data:/var/lib/mysql
+    env_file:
+      - .db_env
+  couchdb:
+    image: couchdb:3.3.3
+    container_name: openemr_couchdb
+    restart: unless-stopped
+    ports:
+      - "5984:5984"
+    env_file:
+      - .db_env
+    volumes:
+      - couchdb_data:/opt/couchdb/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5984/_up"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  couchdb-setup:
+    image: curlimages/curl:latest
+    container_name: openemr_couchdb_setup
+    depends_on:
+      couchdb:
+        condition: service_healthy
+    env_file:
+      - .db_env
+    command: >
+      sh -c "
+      echo 'Setting up CouchDB...' &&
+      curl -X PUT http://$${COUCHDB_USER}:$${COUCHDB_PASSWORD}@couchdb:5984/_users &&
+      curl -X PUT http://$${COUCHDB_USER}:$${COUCHDB_PASSWORD}@couchdb:5984/_replicator &&
+      curl -X PUT http://$${COUCHDB_USER}:$${COUCHDB_PASSWORD}@couchdb:5984/_global_changes &&
+      echo 'CouchDB setup completed successfully!'
+      "
+    restart: "no"
+volumes:
+  logvolume01:
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/ubuntu/openemr_logs
+  sitevolume:
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/ubuntu/openemr_sites
+  mysql_data:
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/ubuntu/openemr_data
+  couchdb_data:
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/ubuntu/openemr_documents
