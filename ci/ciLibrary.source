@@ -29,12 +29,12 @@ coverage_args=(
 
 composer_github_auth() {
     githubToken=$(base64 --decode <<< MjE2OTcwOGE2MmM5ZWRiMzA3NGFmNGVjMmZkOGE0MWY2YzVkMDJhZgo=)
-    githubTokenRateLimitRequest=$(curl -H "Authorization: token $githubToken" https://api.github.com/rate_limit)
-    githubTokenRateLimit=$(jq '.rate.remaining' <<< "$githubTokenRateLimitRequest")
-    echo "Number of github api requests remaining is $githubTokenRateLimit"
+    githubTokenRateLimitRequest=$(curl -H "Authorization: token ${githubToken}" https://api.github.com/rate_limit)
+    githubTokenRateLimit=$(jq '.rate.remaining' <<< "${githubTokenRateLimitRequest}")
+    echo "Number of github api requests remaining is ${githubTokenRateLimit}"
     if (( githubTokenRateLimit > 500 )); then
         echo 'Trying to use composer github api token'
-        if composer config --global --auth github-oauth.github.com "$githubToken"; then
+        if composer config --global --auth github-oauth.github.com "${githubToken}"; then
             echo "github composer token worked"
         else
             echo "github composer token did not work"
@@ -53,9 +53,9 @@ dc() {
 
 _exec() {
     if [[ ${ENABLE_COVERAGE:-false} = true ]]; then
-        dc exec --env XDEBUG_MODE=coverage --workdir "${OPENEMR_DIR}" openemr "$@"
+        dc exec --env XDEBUG_MODE=coverage --workdir "${OPENEMR_DIR?}" openemr "$@"
     else
-        dc exec --workdir "${OPENEMR_DIR}" openemr "$@"
+        dc exec --workdir "${OPENEMR_DIR?}" openemr "$@"
     fi
 }
 
@@ -119,7 +119,7 @@ install_configure() {
 }
 
 build_test_e2e() {
-    _exec sh -c "${CHROMIUM_INSTALL};
+    _exec sh -c "${CHROMIUM_INSTALL?};
                  export PANTHER_NO_SANDBOX=1;
                  export PANTHER_CHROME_ARGUMENTS=--disable-dev-shm-usage;
                  php -d memory_limit=8G ./vendor/bin/phpunit --testsuite e2e \
@@ -135,15 +135,16 @@ phpunit() {
 # Coverage is not handled for api or e2e tests.
 build_test() {
     local testsuite="$1"
-    local -a args=( --testsuite "$testsuite" )
+    local -a args=( --testsuite "${testsuite}" )
     shift
-    case "$testsuite" in
+    case "${testsuite}" in
         api) phpunit "${args[@]}" "$@"
              return
              ;;
         e2e) build_test_e2e "$@"
              return
              ;;
+        *) :;;
     esac
     if [[ ${ENABLE_COVERAGE:-false} = true ]]; then
         args+=(
