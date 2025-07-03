@@ -258,11 +258,18 @@ jobs:
 
   deploy-app-jessica:
     needs: build-and-push-app
-    name: Deploy Docker Image via SSH - Dr. Jessica
+    name: Deploy Docker Image to AWS EC2 - Dr. Jessica
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_SSM_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SSM_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -274,45 +281,64 @@ jobs:
           ECR_URL=$(cat ecr-url.txt)
           echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
 
-      - name: Prepare Docker Compose file
+      - name: Prepare Docker Compose file to Base64
+        id: encode-docker-compose
         run: |
           sed -i 's|REPLACEME_ECR_URL|${{ env.ECR_URL }}:production|g' docker/residen-production/jessica-compose.yml
+          DOCKER_COMPOSE_BASE64=$(cat docker/residen-production/jessica-compose.yml | base64 -w 0)
+          echo "DOCKER_COMPOSE_BASE64=$DOCKER_COMPOSE_BASE64" >> $GITHUB_ENV
 
-      - name: Copy Docker Compose file via SSH
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ehr.drjessicawu.com
-          username: ubuntu
-          key: ${{ secrets.JESSICA_SSH_KEY }}
-          source: "docker/residen-production/jessica-compose.yml"
-          target: "/home/ubuntu/"
-          strip_components: 2
-          overwrite: true
+      - name: Deploy App to Each Instance
+        run: |
+          PAIR=(${{ vars.JESSICA_INSTANCE_ID }})
+          INSTANCE_ID=$(echo $PAIR | cut -d ':' -f 1)
+          DOMAIN_NAME=$(echo $PAIR | cut -d ':' -f 2)
 
-      - name: Deploy to Dr. Jessica's Server via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ehr.drjessicawu.com
-          username: ubuntu
-          key: ${{ secrets.JESSICA_SSH_KEY }}
-          script: |
-            # Rename docker compose file
-            mv /home/ubuntu/jessica-compose.yml /home/ubuntu/docker-compose.yml
-            
-            # Create database environment file
-            echo "# TFA Residen EMR Secrets" > /home/ubuntu/.db_env
-            echo "MYSQL_USER=${{ secrets.JESSICA_MYSQL_USER }}" >> /home/ubuntu/.db_env
-            echo "MYSQL_PASSWORD=${{ secrets.JESSICA_MYSQL_PASSWORD }}" >> /home/ubuntu/.db_env
-            echo "MYSQL_DATABASE=${{ secrets.JESSICA_MYSQL_DATABASE }}" >> /home/ubuntu/.db_env
-            echo "MYSQL_ROOT_PASSWORD=${{ secrets.JESSICA_MYSQL_ROOT_PASSWORD }}" >> /home/ubuntu/.db_env
-            
-            # Create necessary directories
-            mkdir -p /home/ubuntu/openemr_logs
-            mkdir -p /home/ubuntu/openemr_sites
-            
-            # Login to ECR and deploy
-            aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_URL }}
-            cd /home/ubuntu
-            docker compose pull
-            docker compose up -d
-            docker system prune -af
+          echo "Deploying to instance $INSTANCE_ID, for Doctor $DOMAIN_NAME."
+          echo "This is a test for an env var: '$DOMAIN_NAME'"
+
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --instance-ids "$INSTANCE_ID" \
+            --parameters '{
+              "commands": [
+                "sudo -u ubuntu bash -c '\''",
+                "  # Decode and save docker-compose.yml",
+                "  echo -e \"${{ env.DOCKER_COMPOSE_BASE64 }}\" | base64 -d > /home/ubuntu/docker-compose.yml",
+                "  ",
+                "  # Create database environment file",
+                "  echo \"# TFA Residen EMR Secrets\" > /home/ubuntu/.db_env",
+                "  echo \"MYSQL_USER=${{ secrets.JESSICA_MYSQL_USER }}\" >> /home/ubuntu/.db_env",
+                "  echo \"MYSQL_PASSWORD=${{ secrets.JESSICA_MYSQL_PASSWORD }}\" >> /home/ubuntu/.db_env", 
+                "  echo \"MYSQL_DATABASE=${{ secrets.JESSICA_MYSQL_DATABASE }}\" >> /home/ubuntu/.db_env",
+                "  echo \"MYSQL_ROOT_PASSWORD=${{ secrets.JESSICA_MYSQL_ROOT_PASSWORD }}\" >> /home/ubuntu/.db_env",
+                "  ",
+                "  # Create necessary directories",
+                "  mkdir -p /home/ubuntu/openemr_logs",
+                "  mkdir -p /home/ubuntu/openemr_sites",
+                "  ",
+                "  # Login to ECR and deploy",
+                "  aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_URL }}",
+                "  cd /home/ubuntu",
+                "  docker compose pull",
+                "  docker compose up -d", 
+                "  docker system prune -af",
+                "'\''"]
+            }' \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "Command ID: $COMMAND_ID for instance $INSTANCE_ID"
+
+          # Check command execution status
+          until [ "$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "CommandInvocations[0].Status" --output text)" != "InProgress" ]; do
+            echo "Waiting for command to complete on instance $INSTANCE_ID..."
+            sleep 10
+          done
+
+          STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --query "CommandInvocations[0].Status" --output text)
+          echo "Command execution status for instance $INSTANCE_ID: $STATUS"
+          if [ "$STATUS" != "Success" ]; then
+            echo "Command execution failed on instance $INSTANCE_ID."
+            exit 1
+          fi
