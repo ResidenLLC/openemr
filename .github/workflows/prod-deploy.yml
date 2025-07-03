@@ -255,3 +255,64 @@ jobs:
             echo "Command execution failed on instance $INSTANCE_ID."
             exit 1
           fi
+
+  deploy-app-jessica:
+    needs: build-and-push-app
+    name: Deploy Docker Image via SSH - Dr. Jessica
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ecr-url
+        
+      - name: Read ECR URL from Artifact
+        id: ecr-url
+        run: |
+          ECR_URL=$(cat ecr-url.txt)
+          echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
+
+      - name: Prepare Docker Compose file
+        run: |
+          sed -i 's|REPLACEME_ECR_URL|${{ env.ECR_URL }}:production|g' docker/residen-production/jessica-compose.yml
+
+      - name: Copy Docker Compose file via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ehr.drjessicawu.com
+          username: ubuntu
+          key: ${{ secrets.JESSICA_SSH_KEY }}
+          source: "docker/residen-production/jessica-compose.yml"
+          target: "/home/ubuntu/"
+          strip_components: 2
+          overwrite: true
+
+      - name: Deploy to Dr. Jessica's Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ehr.drjessicawu.com
+          username: ubuntu
+          key: ${{ secrets.JESSICA_SSH_KEY }}
+          script: |
+            # Rename docker compose file
+            mv /home/ubuntu/jessica-compose.yml /home/ubuntu/docker-compose.yml
+            
+            # Create database environment file
+            echo "# TFA Residen EMR Secrets" > /home/ubuntu/.db_env
+            echo "MYSQL_USER=${{ secrets.JESSICA_MYSQL_USER }}" >> /home/ubuntu/.db_env
+            echo "MYSQL_PASSWORD=${{ secrets.JESSICA_MYSQL_PASSWORD }}" >> /home/ubuntu/.db_env
+            echo "MYSQL_DATABASE=${{ secrets.JESSICA_MYSQL_DATABASE }}" >> /home/ubuntu/.db_env
+            echo "MYSQL_ROOT_PASSWORD=${{ secrets.JESSICA_MYSQL_ROOT_PASSWORD }}" >> /home/ubuntu/.db_env
+            
+            # Create necessary directories
+            mkdir -p /home/ubuntu/openemr_logs
+            mkdir -p /home/ubuntu/openemr_sites
+            
+            # Login to ECR and deploy
+            aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_URL }}
+            cd /home/ubuntu
+            docker compose pull
+            docker compose up -d
+            docker system prune -af
