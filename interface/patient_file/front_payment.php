@@ -341,7 +341,7 @@ if (!empty($_POST['form_save'])) {
                         if (round($Remainder, 2) != 0 && $amount != 0) {
                             if ($amount - $Remainder >= 0) {
                                 $insert_value = $Remainder;
-                                $amount = $amount - $Remainder;
+                                $amount -= $Remainder;
                             } else {
                                 $insert_value = $amount;
                                 $amount = 0;
@@ -1325,7 +1325,7 @@ function make_insurance() {
                                 ksort($encs, SORT_NUMERIC);
                                 $gottoday = false;
                                 //Bringing on top the Today always
-                                foreach ($encs as $key => $value) {
+                                foreach ($encs as $value) {
                                     $dispdate = $value['date'];
                                     if (strcmp($dispdate, $today) == 0 && !$gottoday) {
                                         $gottoday = true;
@@ -1341,7 +1341,7 @@ function make_insurance() {
                                 }
 
                                 $gottoday = false;
-                                foreach ($encs as $key => $value) {
+                                foreach ($encs as $value) {
                                     $enc = $value['encounter'];
                                     $dispdate = $value['date'];
                                     if (strcmp($dispdate, $today) == 0 && !$gottoday) {
