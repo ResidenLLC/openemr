@@ -110,6 +110,7 @@ class Bootstrap
             $this->registerApiScopes();
             $this->registerAppointmentCategoryApi();
             $this->registerAppointmentStatusApi();
+            $this->registerAppointmentUpdateApi();
         }
     }
 
@@ -149,6 +150,11 @@ class Bootstrap
     public function registerAppointmentStatusApi()
     {
         $this->eventDispatcher->addListener(RestApiCreateEvent::EVENT_HANDLE, [$this, 'addAppointmentStatusApi']);
+    }
+
+    public function registerAppointmentUpdateApi()
+    {
+        $this->eventDispatcher->addListener(RestApiCreateEvent::EVENT_HANDLE, [$this, 'addAppointmentUpdateApi']);
     }
 
     public function addApiScopes(RestApiScopeEvent $event)
@@ -212,6 +218,22 @@ class Bootstrap
                 \RestConfig::authorization_check("admin", "users"); // Adjust as needed
                 \RestConfig::scope_check("user", "appointments_status", "read");
                 return $controller->getStatuses();
+            }
+        );
+        return $event;
+    }
+
+    public function addAppointmentUpdateApi(RestApiCreateEvent $event)
+    {
+        $controller = new AppointmentRestController();
+        $event->addToRouteMap(
+            "PUT /api/patient/:pid/appointment/:eid",
+            function ($pid, $eid) use ($controller) {
+                \RestConfig::authorization_check("patients", "appt");
+                $data = (array)(json_decode(file_get_contents("php://input")));
+                $result = $controller->put($pid, $eid, $data);
+                \RestConfig::apiLog($result, $data);
+                return $result;
             }
         );
         return $event;
