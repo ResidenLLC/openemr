@@ -156,6 +156,7 @@ function calcTaxes($row, $amount)
 $now = time();
 $today = date('Y-m-d', $now);
 $timestamp = date('Y-m-d H:i:s', $now);
+$last90Days = date('Y-m-d', (strtotime('-90 day', strtotime($today))));
 
 $patdata = sqlQuery("SELECT " .
     "p.fname, p.mname, p.lname, p.pubpid,p.pid, i.copay " .
@@ -436,6 +437,11 @@ if (!empty($_POST['form_save']) || !empty($_REQUEST['receipt'])) {
         $frow = $facilityService->getPrimaryBillingLocation();
     }
 
+    //split the source to check if the transaction has refund or not.
+    $exp_source = explode(';', $payrow['source']);
+    $payrow['source'] = (count($exp_source) == 2) ? $exp_source[0] : $payrow['source'];
+    $payrow['refund_source'] = (count($exp_source) == 2) ? $exp_source[1] : null;
+
     // Now proceed with printing the receipt.
     ?>
 
@@ -593,6 +599,13 @@ function toencounter(enc, datestr, topframe) {
                             <br />
                             <?php echo xlt('Check or Reference Number'); ?>:
                             <?php echo text($payrow['source']); ?>
+
+                            <?php
+                            if ($payrow['refund_source']) { ?>
+                                <br />
+                                <?php echo xlt('Check or Refund Number'); ?>:
+                                <?php echo text($payrow['refund_source']); ?>
+                            <?php } ?>
 
                             <br />
                             <?php
@@ -1411,8 +1424,8 @@ function make_insurance() {
                             </table>
                         </div>
                     </fieldset>
-                    <div class="form-group">
-                        <div class="col-sm-12 text-left position-override">
+                    <div class="row">
+                        <div class="col-sm-8 text-left position-override">
                             <div class="form-group" role="group" id="button-group">
                                 <button type='submit' class="btn btn-primary btn-save" name='form_save' value='<?php echo xla('Generate Invoice');?>'><?php echo xlt('Generate Invoice');?></button>
                                 <?php if (!empty($GLOBALS['cc_front_payments']) && $GLOBALS['payment_gateway'] != 'InHouse') {
@@ -1429,6 +1442,11 @@ function make_insurance() {
                                 <input type="hidden" name="hidden_patient_code" id="hidden_patient_code" value="<?php echo attr($pid);?>"/>
                                 <input type='hidden' name='ajax_mode' id='ajax_mode' value='' />
                                 <input type='hidden' name='mode' id='mode' value='' />
+                            </div>
+                        </div>
+                        <div class="col-sm-4 text-left position-override text-right">
+                            <div class="form-group">
+                                <button type="button" class="btn btn-warning btn-undo mx-1" data-toggle="modal" data-target="#openRefundModal"><?php echo xlt("Refund Transaction"); ?></button>
                             </div>
                         </div>
                     </div>
@@ -1572,6 +1590,7 @@ function make_insurance() {
                                     <input type='hidden' name='payment' id='paymentAmount' value='' />
                                     <input type='hidden' name='invValues' id='invValues' value='' />
                                     <input type='hidden' name='encs' id='encs' value='' />
+                                    <input type='hidden' name='user_initials' id='user_initials' value='' />
                                 </fieldset>
                             </form>
                         <?php } ?>
@@ -1588,6 +1607,98 @@ function make_insurance() {
                             if ($GLOBALS['payment_gateway'] == 'Stripe') { ?>
                                 <button id="stripeSubmit" class="btn btn-primary"><?php echo xlt('Pay Now'); ?></button>
                             <?php } ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- credit payment confirmation modal -->
+        <div id="openConfirmTransanctionModal" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content" style="min-height: 375px;">
+                    <div class="modal-header">
+                        <h4><?php echo xlt('Confirm Transaction Amount'); ?></h4>
+                    </div>
+                    <div class="modal-body">
+                        <fieldset>
+                            <div class="form-group p-2 mb-0">
+                                <label class="control-label"><?php echo xlt('Amount to be charged:'); ?>
+                                    <span id="amountCharged" class="text-success"></span>
+                                </label>
+                            </div>
+                            <div class="form-group p-2 mb-0">
+                                <div class="row">
+                                    <div class="col-sm-8 pr-0">
+                                        <label for="your_initials" class="control-label mt-1"><?php echo xlt('Please enter your initials to proceed:'); ?></label>
+                                    </div>
+                                    <div class="col-sm-4 pl-0">
+                                        <input name="your_initials" id="your_initials" type="text" class="form-control" title="<?php echo xla('Your initials'); ?>"/>
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="form-group p-2 text-danger mb-0" id="your-initials-errors" role="alert"></div>
+                            <input type='hidden' name='stripeToken' id='stripeToken' value='' />
+                        </fieldset>
+                    </div>
+                    <!-- Body  -->
+                    <div class="modal-footer">
+                        <div class="button-group">
+                            <button id="cancelStripeSubmit" type="button" class="btn btn-default" data-dismiss="modal"><?php echo xlt('Cancel'); ?></button>
+                            <button id="confirmStripeSubmit" class="btn btn-primary"><?php echo xlt('Confirm'); ?></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- credit payment modal -->
+        <div id="openRefundModal" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4><?php echo xlt('Refund Transaction Amount'); ?></h4>
+                    </div>
+                    <div class="modal-body">
+                        <form class="form" method="post" name="payment-refund" id="payment-refund">
+                            <fieldset>
+                                <div class="form-group">
+                                    <label for="cardHolderName" class="control-label"><?php echo xlt('Select Transaction'); ?></label>
+                                    <select class="form-control" id="refundCharge" name="refundCharge">
+                                        <?php $queryRefund = "SELECT SUBSTRING_INDEX(p.source,';', 1) as charge_source, ".
+                                            "DATE_FORMAT(p.dtime,'%M %d %Y') AS dtime, ".
+                                            "SUM(p.amount1 + p.amount2) AS amount, p.encounter " .
+                                            "FROM  payments AS p " .
+                                            "WHERE p.pid = ? AND p.source <> '' AND p.dtime >= '" . $last90Days . "' " .
+                                            "GROUP BY charge_source, p.encounter " .
+                                            "HAVING amount > 0 " .
+                                            "ORDER BY p.dtime DESC";
+                                        $bresRefund = sqlStatement($queryRefund, array($pid));
+                                        while ($browRefund = sqlFetchArray($bresRefund)) {
+                                            echo "<option value='" . attr($browRefund['charge_source']) . "' data-amount='" . attr($browRefund['amount']) . "'
+                                                data-encounter='" . attr($browRefund['encounter']) . "'>"
+                                                . text(xl_list_label('$' .$browRefund['amount']) . ' - Paid on: ' . $browRefund['dtime']
+                                                    . ', for Encounter: ' . $browRefund['encounter']). "</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="refundAmount" class="control-label"><?php echo xlt('Refund Amount'); ?></label>
+                                    <input name="refundAmount" id="refundAmount" type="text"
+                                           class="form-control"
+                                           title="<?php echo xla('Fill refund amount'); ?>"/>
+                                </div>
+                                <input type='hidden' name='mode' id='mode' value='' />
+                            </fieldset>
+                        </form>
+                    </div>
+                    <!-- Body  -->
+                    <div class="modal-footer">
+                        <div class="button-group">
+                            <button id="cancelRefund" type="button" class="btn btn-default" data-dismiss="modal"><?php echo xlt('Cancel'); ?></button>
+                            <button id="stripeRefund" class="btn btn-primary"><?php echo xlt('Refund'); ?></button>
                         </div>
                     </div>
                 </div>
@@ -1746,21 +1857,59 @@ function make_insurance() {
                 // Handle form submission.
                 let form = document.getElementById('stripeSubmit');
                 form.addEventListener('click', function (event) {
+                    $('#stripeSubmit').attr('disabled', true);
                     event.preventDefault();
                     stripe.createToken(card).then(function (result) {
                         if (result.error) {
                             // Inform the user if there was an error.
                             let errorElement = document.getElementById('card-errors');
                             errorElement.textContent = result.error.message;
+                            $('#stripeSubmit').attr('disabled', false);
                         } else {
-                            // Send the token to server.
-                            stripeTokenHandler(result.token);
+                            // open confirm payment modal
+                            $("#amountCharged").text("$" + $("#paymentAmount").val());
+                            $('#stripeToken').val(result.token.id)
+                            $('#openConfirmTransanctionModal').modal();
+                            $("#openPayModal").hide();
+                            $('#stripeSubmit').attr('disabled', false);
                         }
                     });
                 });
 
+                $('#your_initials').change(function () {
+                    let displayError = $('#your-initials-errors');
+                    let yourInitials = $('#your_initials').val();
+                    if (!yourInitials) {
+                        displayError.html('Please enter your initials!');
+                    } else {
+                        displayError.html('');
+                        $('#confirmStripeSubmit').attr('disabled', false);
+                    }
+                });
+
+                $("#openConfirmTransanctionModal").on("hide.bs.modal", function () {
+                    $("#openPayModal").show();
+                });
+
+
+                let formConfirmStripe = document.getElementById('confirmStripeSubmit');
+                formConfirmStripe.addEventListener('click', function (event) {
+                    $('#confirmStripeSubmit').attr('disabled', true);
+                    event.preventDefault();
+                    let yourInitials = $('#your_initials').val();
+                    if (!yourInitials) {
+                        $('#your-initials-errors').html('Please enter your initials!');
+                        $('#confirmStripeSubmit').attr('disabled', false);
+                    } else {
+                        // Send the token to server.
+                        let stripeToken = $('#stripeToken').val();
+                        stripeTokenHandler(stripeToken);
+                        $('#stripeToken').val('');
+                    }
+                });
+
                 // Submit the form with the token ID.
-                function stripeTokenHandler(token) {
+                function stripeTokenHandler(token_id) {
                     // below for manual cc audit
                     const encDates = (() => {
                         let i = 0, c;
@@ -1786,11 +1935,12 @@ function make_insurance() {
                     let oForm = document.forms['payment-form'];
                     oForm.elements['mode'].value = "Stripe";
                     oForm.elements['encs'].value = encDates;
+                    oForm.elements['user_initials'].value = $('#your_initials').val();
 
                     let hiddenInput = document.createElement('input');
                     hiddenInput.setAttribute('type', 'hidden');
                     hiddenInput.setAttribute('name', 'stripeToken');
-                    hiddenInput.setAttribute('value', token.id);
+                    hiddenInput.setAttribute('value', token_id);
                     oForm.appendChild(hiddenInput);
 
                     // Submit payment to server
@@ -1809,9 +1959,17 @@ function make_insurance() {
                         }
                         document.getElementById("check_number").value = data.transId;
                         alert(chargeMsg + "\n" + 'Auth: ' + data.authCode + ' TransId: ' + data.transId);
+                        $("#check_number").attr('disabled', false);
                         $("[name='form_save']").click();
+                        $('#stripeSubmit').attr('disabled', false);
+                        $("#check_number").attr('disabled', true);
+                        $('#openConfirmTransanctionModal').modal('toggle');
+                        $('#confirmStripeSubmit').attr('disabled', false);
                     }).catch(function (error) {
                         alert(error.message);
+                        $('#stripeSubmit').attr('disabled', false);
+                        $('#confirmStripeSubmit').attr('disabled', false);
+                        $('#openConfirmTransanctionModal').modal('toggle');
                     });
                 }
                 // terminal
@@ -1860,6 +2018,59 @@ function make_insurance() {
                 <?php } ?>
             </script>
         <?php } ?>
+
+        <script>
+            // Handle form submission.
+            let refundForm = document.getElementById("stripeRefund");
+            refundForm.addEventListener('click', function (event) {
+                $("#stripeRefund").attr('disabled', true);
+                event.preventDefault();
+
+                //let transactionAmount = $("[name='refundCharge'] option:selected").attr('data-amount');
+                let refundAmount = $("[name='refundAmount']").val();
+                let refundCharge = $("#refundCharge").val();
+
+                // Insert the token ID into the form so it gets submitted to the server
+                let oForm = document.forms['payment-refund'];
+                // if the refund amount is small than transaction amount
+                oForm.elements['mode'].value = "RefundStripe";
+                // Submit payment to server
+                if (refundAmount !== '') {
+                    fetch('./front_payment_cc.php', {
+                        method: 'POST',
+                        body: new FormData(oForm)
+                    }).then((response) => {
+                        if (!response.ok) {
+                            throw Error(response.statusText);
+                        }
+                        return response.json();
+                    }).then(function (data) {
+                        if (data.message) {
+                            alert(data.message);
+                        }
+                        if (data.status === true) {
+                            $("[name='refundAmount']").val('');
+                            let transactionEncounter = $("[name='refundCharge'] option:selected").attr('data-encounter');
+                            let formPay = "[name='form_upay[" + transactionEncounter + "]']";
+                            $(formPay).val(-refundAmount);
+                            $("#check_number").val(refundCharge+";"+data.data.refund_id).attr('disabled', false);
+                            $("#form_method").val('credit_card');
+                            $("#radio_type_of_coverage1").attr('checked', 'checked');
+                            $("#radio_type_of_payment_self1").attr('checked', 'checked');
+                            $("[name='form_save']").click();
+                        }
+                        $("#stripeRefund").attr('disabled', false);
+                        $("#check_number").attr('disabled', true);
+                    }).catch(function (error) {
+                        $("#stripeRefund").attr('disabled', false);
+                        alert(error.message);
+                    });
+                } else {
+                    $("#stripeRefund").attr('disabled', false);
+                    alert("Please enter a refund amount.");
+                }
+            });
+        </script>
 
         <?php
         if ($GLOBALS['payment_gateway'] == 'Sphere') {
