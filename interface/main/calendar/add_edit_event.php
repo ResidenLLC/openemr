@@ -212,8 +212,8 @@ function DOBandEncounter($pc_eid)
      global $event_date,$info_msg;
      // Save new DOB if it's there.
      $patient_dob = trim($_POST['form_dob'] ?? '');
-     $tmph = (int)$_POST['form_hour'];
-     $tmpm = (int)$_POST['form_minute'];
+     $tmph = $_POST['form_hour'] + 0;
+     $tmpm = $_POST['form_minute'] + 0;
     if (!empty($_POST['form_ampm']) && ($_POST['form_ampm'] == '2' && $tmph < 12)) {
         $tmph += 12;
     }
@@ -899,15 +899,15 @@ if ($eid) {
 
  // If we have a patient ID, get the name and phone numbers to display.
 if ($patientid) {
-    $prow = sqlQuery("SELECT lname, fname, phone_home, phone_biz, DOB " .
+    $prow = sqlQuery("SELECT lname, fname, phone_home, phone_cell, DOB " .
      "FROM patient_data WHERE pid = ?", array($patientid));
     $patientname = $prow['lname'] . ", " . $prow['fname'];
     if ($prow['phone_home']) {
         $patienttitle['phone_home'] = xl("Home Phone") . ": " . $prow['phone_home'];
     }
 
-    if ($prow['phone_biz']) {
-        $patienttitle['phone_biz'] = xl("Work Phone") . ": " . $prow['phone_biz'];
+    if ($prow['phone_cell']) {
+        $patienttitle['phone_cell'] = xl("Cell Phone") . ": " . $prow['phone_cell'];
     }
 }
 
