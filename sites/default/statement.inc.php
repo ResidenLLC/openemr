@@ -105,19 +105,21 @@ function report_header_2($stmt, $providerID = '1')
                 $haveLogo = true;
             }
             ?>
-            <td align='center' style='<?php echo ($haveLogo ? text("width:40%;max-width:50%;") : text("width:50%;") ) ?>'> <!--adds some growing room-->
-                <em style="font-weight:bold;font-size:1.4em;"><?php echo text($facility['name']); ?></em><br />
+            <td align='left' style='<?php echo ($haveLogo ? text("width:40%;max-width:50%;") : text("width:50%;") ) ?>'> <!--adds some growing room-->
+                <b style="font-weight:bold;font-size:1.4em;"><?php echo text($facility['name']); ?></b><br />
                 <?php echo text($facility['street']); ?><br />
                 <?php echo text($facility['city']); ?>, <?php echo text($facility['state']); ?> <?php echo text($facility['postal_code']); ?><br />
                 <?php echo xlt('Phone') . ': ' . text($facility['phone']); ?><br />
                 <?php echo xlt('Fax') . ': ' . text($facility['fax']); ?><br />
                 <br clear='all' />
             </td>
-            <td align='center'>
-                <em style="font-weight:bold;font-size:1.4em;"><?php echo text($titleres['fname']) . " " . text($titleres['lname']); ?></em><br />
-                <b style="font-weight:bold;"><?php echo xlt('Chart Number'); ?>:</b> <?php echo text($stmt['pid']); ?><br />
-                <b style="font-weight:bold;"><?php echo xlt('Generated on'); ?>:</b> <?php echo text(oeFormatShortDate()); ?><br />
-                <b><?php echo xlt('Provider') . ':</b>  '; ?><?php echo text(getProviderName($providerID)); ?> <br />
+            <td align='center'></td>
+            <td align='center'></td>
+            <td align='left'>
+                <b style="font-weight:bold;font-size:1.4em;"><?php echo text($titleres['fname']) . " " . text($titleres['lname']); ?></b><br />
+                <b style="font-weight:bold;"><?php echo xlt('Chart'); ?>:</b> <?php echo text($stmt['pid']); ?><br />
+                <b style="font-weight:bold;"><?php echo xlt('Generated'); ?>:</b> <?php echo text(oeFormatShortDate()); ?><br />
+                <b><?php echo xlt('Doctor') . ':</b>  '; ?><?php echo text(getProviderName($providerID)); ?> <br />
             </td>
         </tr>
     </table>
@@ -198,15 +200,15 @@ function create_HTML_statement($stmt)
     $label_remitto = xl('REMIT TO');
     $label_chartnum = xl('Chart Number');
     $label_insinfo = xl('Insurance information on file');
-    $label_totaldue = xl('Total amount due');
+    $label_totaldue = xl('Total due');
     $label_payby = xl('If paying by');
-    $label_cards = xl('VISA/MC/Discovery/HSA');
+    $label_cards = xl('VISA/MC/AMEX');
     $label_cardnum = xl('Card');
     $label_expiry = xl('Exp');
     $label_cvv = xl('CVV');
     $label_sign = xl('Signature');
-    $label_retpay = xl('Please return this bottom part with your payment');
-    $label_pgbrk = xl('STATEMENT SUMMARY');
+    $label_retpay = xl('Please return the bottom part with your payment');
+    $label_pgbrk = xl('STATEMENT');
     $label_visit = xl('Visit Date');
     $label_desc = xl('Description');
     $label_amt = xl('Amount');
@@ -221,7 +223,7 @@ function create_HTML_statement($stmt)
 
     $out  = "<div style='margin-left:60px;margin-top:20px;'><pre>";
     $out .= "\n";
-    $out .= sprintf("_______________________ %s _______________________\n", $label_pgbrk);
+    $out .= sprintf("___________________________ %s ___________________________\n", $label_pgbrk);
     $out .= "\n";
     $out .= sprintf("%-11s %-46s %s\n", $label_visit, $label_desc, $label_amt);
 
@@ -247,7 +249,9 @@ function create_HTML_statement($stmt)
         $tmp = substr($description, 0, 14);
         if ($tmp == 'Procedure 9920' || $tmp == 'Procedure 9921' || $tmp == 'Procedure 9200' || $tmp == 'Procedure 9201') {
             $description = str_replace("Procedure", xl('Office Visit') . ":", $description);
-        }
+        } else {
+            $description = str_replace("Procedure", xl('Procedure') . ":", $description);
+        } 
 
         //92002-14 are Eye Office Visit Codes
 
@@ -277,9 +281,9 @@ function create_HTML_statement($stmt)
                     substr(oeFormatShortDate($ddate), 8, 2) .
                     ': ' . $ddata['src'] . ' ' . $ddata['pmt_method'] . ' ' . $ddata['insurance_company'];
                 // $ddata['plv'] is the 'payer_type' field in `ar_activity`, passed in via InvoiceSummary
-                if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
+                if ($ddata['src'] == 'Patient Payment' || $ddata['plv'] == '0') {
                     $pt_paid_flag = true;
-                    $desc = xl('Pt paid') . ' ' . substr(oeFormatShortDate($ddate), 0, 6) .
+                    $desc = xl('Patient Payment') . ' ' . substr(oeFormatShortDate($ddate), 0, 6) .
                     substr(oeFormatShortDate($ddate), 8, 2);
                 }
             } elseif (!empty($ddata['rsn'])) {
@@ -456,19 +460,19 @@ function create_HTML_statement($stmt)
  ';
     $out .= $label_payby . ' ' . $label_cards;
     $out .= "<br /><br />";
-    $out .= $label_cardnum . ': __________________________________  ' . $label_expiry . ': ___ / ____ ' . $label_cvv . ':____<br /><br />';
-    $out .= $label_sign . '  ______________________________________________<br />';
+    $out .= $label_cardnum . ': _________________________________  ' . $label_expiry . ': ___ / ____ <br /><br />';
+    $out .= $label_sign . '  ______________________________ ' . $label_cvv . ': _______<br />';
     $out .= "</td><td style='width:2.0in;vertical-align:middle;'>";
     $practice_cards = $GLOBALS['OE_SITE_DIR'] . "/images/visa_mc_disc_credit_card_logos_176x35.gif";
     if (file_exists($GLOBALS['OE_SITE_DIR'] . "/images/visa_mc_disc_credit_card_logos_176x35.gif")) {
         $out .= "<img src='$practice_cards' style='width:90px;height:auto; margin:4px auto;'><br /><p>\n<b>" .
-            $label_totaldue . "</b>: " . $stmt['amount'] . "<br/>" . xlt('Payment Tracking Id') . ": " .
+            $label_totaldue . "</b>: " . $stmt['amount'] . "<br/>" . xlt('Tracking Id') . ": " .
             text($stmt['pid']);
-        $out .= "<br />" . xlt('Amount Paid') . ": _______ " . xlt('Check') . " #:</p>";
+        $out .= "<br />" . xlt('Amount Paid') . ": _______ " . xlt('Check') . " #: ___________</p>";
     } else {
         $out .= "<br /><p><b>" . $label_totaldue . "</b>: " . $stmt['amount'] . "<br/>" .
             xlt('Payment Tracking Id') . ": " . text($stmt['pid']) . "</p>";
-        $out .= "<br /><p>" . xlt('Amount Paid') . ": _______ " . xlt('Check') . " #:</p>";
+        $out .= "<br /><p>" . xlt('Amount Paid') . ": _______ " . xlt('Check') . " #: ___________</p>";
     }
 
     $out .= "</td></tr></table>";
@@ -657,7 +661,7 @@ function create_statement($stmt)
     $label_cvv = xl('CVV');
     $label_sign = xl('Signature');
     $label_retpay = xl('Return above part with your payment');
-    $label_pgbrk = xl('STATEMENT SUMMARY');
+    $label_pgbrk = xl('STATEMENT');
     $label_visit = xl('Visit Date');
     $label_desc = xl('Description');
     $label_amt = xl('Amount');
@@ -699,7 +703,7 @@ function create_statement($stmt)
     $out .= sprintf("-----------------------------------------------------------------\n");
     $out .= sprintf("%-20s %s\n", null, $label_retpay);
     $out .= "\n";
-    $out .= sprintf("_______________________ %s _______________________\n", $label_pgbrk);
+    $out .= sprintf("___________________________ %s ___________________________\n", $label_pgbrk);
     $out .= "\n";
     $out .= sprintf("%-11s %-46s %s\n", $label_visit, $label_desc, $label_amt);
     $out .= "\n";
@@ -948,11 +952,11 @@ function osp_create_HTML_statement($stmt)
 
     $label_addressee = xl('ADDRESSED TO');
     $label_remitto = xl('REMIT TO');
-    $label_chartnum = xl('Chart Number');
+    $label_chartnum = xl('Chart');
     $label_insinfo = xl('Insurance information on file');
-    $label_totaldue = xl('Total amount due');
+    $label_totaldue = xl('Total due');
     $label_payby = xl('If paying by');
-    $label_cards = xl('VISA/MC/Discovery/HSA');
+    $label_cards = xl('VISA/MC/AMEX');
     $label_cardnum = xl('Card');
     $label_expiry = xl('Exp');
     $label_sign = xl('Signature');
@@ -999,6 +1003,8 @@ function osp_create_HTML_statement($stmt)
         $tmp = substr($description, 0, 14);
         if ($tmp == 'Procedure 9920' || $tmp == 'Procedure 9921' || $tmp == 'Procedure 9200' || $tmp == 'Procedure 9201') {
             $description = str_replace("Procedure", xl('Office Visit') . ":", $description);
+        } else {
+            $description = str_replace("Procedure", xl('Procedure') . ":", $description);
         }
 
         //92002-14 are Eye Office Visit Codes
