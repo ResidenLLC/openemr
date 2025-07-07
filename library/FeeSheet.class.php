@@ -163,6 +163,8 @@ class FeeSheet
   //
     public static function getAge($dob, $asof = '')
     {
+        if ($dob == null) return 0;
+
         if (empty($asof)) {
             $asof = date('Y-m-d');
         }
