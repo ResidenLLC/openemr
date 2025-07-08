@@ -446,7 +446,7 @@ echo ""
 echo "Love OpenEMR? You can now support the project via the open collective:"
 echo " > https://opencollective.com/openemr/donate"
 echo "Configuring file permissions..."
-chown -R www-data:www-data /var/www/localhost/htdocs/openemr
+chown -R apache:apache /var/www/localhost/htdocs/openemr
 find /var/www/localhost/htdocs/openemr -type d -exec chmod 775 {} \;
 find /var/www/localhost/htdocs/openemr -type f -exec chmod 664 {} \;
 echo "File permissions configured"
