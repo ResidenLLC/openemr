@@ -11,11 +11,13 @@ user/practitioner.write user/prescription.read user/procedure.read user/soap_not
 user/vital.read user/vital.write user/AllergyIntolerance.read user/CareTeam.read user/Condition.read user/Encounter.read
 user/Immunization.read user/Location.read user/Medication.read user/MedicationRequest.read user/Observation.read user/Organization.read
 user/Organization.write user/Patient.read user/Patient.write user/Practitioner.read user/Practitioner.write user/PractitionerRole.read
-user/Procedure.read user/Location.read user/Person.read patient/Encounter.read patient/Patient.read user/payment.write user/appointments_category.read user/appointments_status.read"
+user/Procedure.read user/Location.read user/Person.read patient/Encounter.read patient/Patient.read 
+user/payment.write user/appointments_category.read user/appointments_status.read user/appointments_room.read"
 ....
 //added the ( user/payment.write ) scope to work with the payment endpoint
 //added the ( user/appointments_category.read ) scope to work with the app categories endpoint
 //added the ( user/appointments_status.read ) scope to work with the app statuses endpoint
+//added the ( user/appointments_room.read ) scope to work with the app statuses endpoint
 
 this scope also needs to be added when generating the access token for the patient sync module.
 
