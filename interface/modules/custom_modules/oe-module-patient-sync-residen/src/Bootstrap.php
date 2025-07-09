@@ -173,10 +173,13 @@ class Bootstrap
             $scopes[] = 'patient/appointments_category.read';
             $scopes[] = 'user/appointments_status.read';
             $scopes[] = 'patient/appointments_status.read';
+            $scopes[] = 'user/appointments_room.read';
+            $scopes[] = 'patient/appointments_room.read';
             if (\RestConfig::areSystemScopesEnabled()) {
                 $scopes[] = 'system/payment.write';
                 $scopes[] = 'system/appointments_category.read';
                 $scopes[] = 'system/appointments_status.read';
+                $scopes[] = 'system/appointments_room.read';
             }
             $event->setScopes($scopes);
         }
@@ -221,9 +224,23 @@ class Bootstrap
         $event->addToRouteMap(
             "GET /api/appointments_status",
             function () use ($controller) {
-                \RestConfig::authorization_check("admin", "users"); // Adjust as needed
+                \RestConfig::authorization_check("admin", "users");
                 \RestConfig::scope_check("user", "appointments_status", "read");
                 return $controller->getStatuses();
+            }
+        );
+        return $event;
+    }
+
+    public function addAppointmentRoomApi(RestApiCreateEvent $event)
+    {
+        $controller = new AppointmentRoomRestController();
+        $event->addToRouteMap(
+            "GET /api/appointments_room",
+            function () use ($controller) {
+                \RestConfig::authorization_check("admin", "users");
+                \RestConfig::scope_check("user", "appointments_room", "read");
+                return $controller->getRooms();
             }
         );
         return $event;
@@ -240,20 +257,6 @@ class Bootstrap
                 $result = $controller->put($pid, $eid, $data);
                 \RestConfig::apiLog($result, $data);
                 return $result;
-            }
-        );
-        return $event;
-    }
-
-    public function addAppointmentRoomApi(RestApiCreateEvent $event)
-    {
-        $controller = new AppointmentRoomRestController();
-        $event->addToRouteMap(
-            "GET /api/appointments_room",
-            function () use ($controller) {
-                \RestConfig::authorization_check("admin", "users");
-                \RestConfig::scope_check("user", "appointments_room", "read");
-                return $controller->getRooms();
             }
         );
         return $event;
