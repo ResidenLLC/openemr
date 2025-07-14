@@ -11,6 +11,45 @@ set -e
 
 source /root/devtoolsLibrary.source
 
+# Clear potentially corrupted cache files early in startup to prevent segmentation faults
+clear_cache_files() {
+    echo "Clearing potentially corrupted cache files..."
+    
+    # Clear PHP opcache files
+    if [ -d /tmp/opcache ]; then
+        rm -rf /tmp/opcache
+        echo "Cleared opcache files"
+    fi
+    
+    # Clear any PHP file cache directories
+    if [ -d /tmp/php-file-cache ]; then
+        rm -rf /tmp/php-file-cache
+        echo "Cleared PHP file cache"
+    fi
+    
+    # Clear Smarty cache to prevent template compilation issues
+    if [ -d /var/www/localhost/htdocs/openemr/sites/default/documents/smarty ]; then
+        rm -rf /var/www/localhost/htdocs/openemr/sites/default/documents/smarty/gacl/*
+        rm -rf /var/www/localhost/htdocs/openemr/sites/default/documents/smarty/main/*
+        echo "Cleared Smarty cache"
+    fi
+    
+    # Clear PHP session files that might be corrupted
+    if [ -d /tmp/sessions ]; then
+        rm -rf /tmp/sessions/*
+        echo "Cleared PHP session files"
+    fi
+    
+    # Clear any temporary files that might cause issues
+    find /tmp -name "*.tmp" -type f -delete 2>/dev/null || true
+    find /tmp -name "php*" -type f -delete 2>/dev/null || true
+    
+    echo "Cache cleanup completed"
+}
+
+# Clear cache files at startup
+clear_cache_files
+
 swarm_wait() {
     if [ ! -f /var/www/localhost/htdocs/openemr/sites/docker-completed ]; then
         # true
@@ -419,10 +458,24 @@ if [ "$XDEBUG_IDE_KEY" != "" ] ||
       touch /etc/php-opcache-jit-configured
    fi
 else
-   # Configure opcache jit if Xdebug is not being used (note opcache is already on, so just need to add setting(s) to php.ini that are different from the default setting(s))
+   # Configure opcache with conservative settings to prevent segmentation faults
    if [ ! -f /etc/php-opcache-jit-configured ]; then
-      echo "opcache.jit=tracing" >> /etc/php83/php.ini
-      echo "opcache.jit_buffer_size=100M" >> /etc/php83/php.ini
+      # Use more conservative opcache settings
+      echo "opcache.revalidate_freq=0" >> /etc/php83/php.ini
+      echo "opcache.validate_timestamps=1" >> /etc/php83/php.ini
+      echo "opcache.max_accelerated_files=20000" >> /etc/php83/php.ini
+      echo "opcache.memory_consumption=256" >> /etc/php83/php.ini
+      echo "opcache.interned_strings_buffer=16" >> /etc/php83/php.ini
+      echo "opcache.fast_shutdown=1" >> /etc/php83/php.ini
+      
+      # Disable JIT completely to prevent segmentation faults
+      # JIT can cause instability, especially after unclean shutdowns
+      echo "opcache.jit=off" >> /etc/php83/php.ini
+      echo "opcache.jit_buffer_size=0" >> /etc/php83/php.ini
+      
+      # Enable opcache restart mechanism for better stability
+      echo "opcache.force_restart_timeout=60" >> /etc/php83/php.ini
+      
       touch /etc/php-opcache-jit-configured
    fi
 fi
@@ -455,6 +508,25 @@ echo "File permissions configured"
 echo ""
 
 if [ "$OPERATOR" == "yes" ]; then
+    # Final cleanup and preparation before starting Apache
+    echo "Performing final cleanup before Apache startup..."
+    
+    # Remove any stale Apache PID files that might cause issues
+    rm -f /run/apache2/httpd.pid
+    rm -f /var/run/apache2/httpd.pid
+    
+    # Clear any remaining temporary files
+    clear_cache_files
+    
+    # Ensure Apache run directory exists and has proper permissions
+    mkdir -p /run/apache2
+    chown apache:apache /run/apache2
+    
+    # Clear Apache error logs to start fresh
+    > /var/log/apache2/error.log 2>/dev/null || true
+    > /var/log/apache2/access.log 2>/dev/null || true
+    
+    echo "Final cleanup completed"
     echo "Starting apache!"
     /usr/sbin/httpd -D FOREGROUND
 else
