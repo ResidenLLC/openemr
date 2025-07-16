@@ -85,7 +85,11 @@ function setpatient(pid, lname='', fname='', dob='') {
         $("#new_age").html(obj.age + ' years old');
         $("#new_reason").val(obj.PLAN);
         $("#new_recall_name").val(obj.lname + ', ' + obj.fname);
-        $("#form_recall_date").val(obj.recall_date);
+        if (obj.date_format) {
+            $("#form_recall_date").val(moment(obj.recall_date).format(obj.date_format));
+        } else {
+            $("#form_recall_date").val(obj.recall_date);
+        }
         $("#new_provider").val(obj.provider).change();
         $("#new_facility").val(obj.facility).change();
     });

@@ -184,6 +184,17 @@ if (($_REQUEST['pid']) && ($_REQUEST['action'] == "new_recall")) {
         $result['DOLV']     = oeFormatShortDate($result2['pc_eventDate']);
         $result['provider'] = $result2['pc_aid'];
         $result['facility'] = $result2['pc_facility'];
+        // config date format
+        $dt_format = "YYYY-MM-DD";
+        switch ($GLOBALS['date_display_format']) {
+            case 1: // MM/DD/YYYY format
+                $dt_format = "MM/DD/YYYY";
+                break;
+            case 2: // DD/MM/YYYY format
+                $dt_format = "DD/MM/YYYY";
+                break;
+        }
+        $result['date_format'] = $dt_format;
     }
     /**
      * Is there an existing Recall in place already????
