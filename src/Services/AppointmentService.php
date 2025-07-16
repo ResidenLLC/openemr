@@ -99,6 +99,7 @@ class AppointmentService extends BaseService
         $validator->required('pc_startTime')->length(5); // HH:MM is 5 chars
         $validator->required('pc_facility')->numeric();
         $validator->required('pc_billing_location')->numeric();
+        $validator->optional('pc_room')->numeric(); // <-- Add this line
         $validator->optional('pc_aid')->numeric()
             ->callback(function ($value, $data) {
                 $id = QueryUtils::fetchSingleValue('Select id FROM users WHERE id = ? ', 'id', [$value]);
@@ -317,6 +318,7 @@ class AppointmentService extends BaseService
         $sql .= "     pc_endTime=?,";
         $sql .= "     pc_facility=?,";
         $sql .= "     pc_billing_location=?,";
+        $sql .= "     pc_room=?,"; // <-- Add this line
         $sql .= "     pc_informant=1,";
         $sql .= "     pc_eventstatus=1,";
         $sql .= "     pc_sharing=1,";
@@ -337,6 +339,7 @@ class AppointmentService extends BaseService
                 $endTime->format('H:i:s'),
                 $data["pc_facility"],
                 $data["pc_billing_location"],
+                $data["pc_room"] ?? '', // <-- Add this line
                 $data["pc_aid"] ?? null
             )
         );
