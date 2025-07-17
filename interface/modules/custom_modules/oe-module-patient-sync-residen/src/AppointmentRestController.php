@@ -71,7 +71,8 @@ class AppointmentRestController
             'pc_startTime' => $data['pc_startTime'],
             'pc_facility' => $data['pc_facility'] ?? '',
             'pc_billing_location' => $data['pc_billing_location'] ?? '',
-            'pc_aid' => $data['pc_aid']
+            'pc_aid' => $data['pc_aid'],
+            'pc_room' => $data['pc_room'] ?? ''
         ];
         $set = [];
         $params = [];
