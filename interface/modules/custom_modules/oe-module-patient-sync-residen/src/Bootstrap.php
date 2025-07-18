@@ -112,6 +112,7 @@ class Bootstrap
             $this->registerAppointmentStatusApi();
             $this->registerAppointmentUpdateApi();
             $this->registerAppointmentRoomApi();
+            $this->registerAppointmentApiOverride();
         }
     }
 
@@ -161,6 +162,30 @@ class Bootstrap
     public function registerAppointmentRoomApi()
     {
         $this->eventDispatcher->addListener(RestApiCreateEvent::EVENT_HANDLE, [$this, 'addAppointmentRoomApi']);
+    }
+
+    public function registerAppointmentApiOverride()
+    {
+        $this->eventDispatcher->addListener(
+            RestApiCreateEvent::EVENT_HANDLE,
+            [ $this, 'addAppointmentApiOverride' ]
+        );
+    }
+
+    public function addAppointmentApiOverride(\OpenEMR\Events\RestApiExtend\RestApiCreateEvent $event)
+    {
+        $controller = new \OpenEMR\Modules\PatientSync\CustomAppointmentRestController();
+        $event->addToRouteMap(
+            "GET /api/appointment",
+            function () use ($controller) {
+                $facility = $_GET['facility'] ?? null;
+                $provider = $_GET['provider'] ?? null;
+                $start_date = $_GET['start_date'] ?? null;
+                $end_date = $_GET['end_date'] ?? null;
+                return $controller->getAllFiltered($facility, $provider, $start_date, $end_date);
+            }
+        );
+        return $event;
     }
 
     public function addApiScopes(RestApiScopeEvent $event)
