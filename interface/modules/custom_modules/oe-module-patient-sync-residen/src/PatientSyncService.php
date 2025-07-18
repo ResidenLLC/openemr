@@ -86,7 +86,7 @@ class PatientSyncService
             throw new \Exception("Could not find UUID for patient with PID: " . $patientData['pid']);
         }
 
-        $this->logger->debug("UPDATE API TRIMIS: " , ['data' => $formattedData]);
+        $this->logger->debug("UPDATE API TRIMIS: " , $formattedData);
 
         try {
             $url = rtrim($this->apiEndpoint, '/') . '/patient/' . $this->apiKey . '/' . $patientUuid;
@@ -98,8 +98,8 @@ class PatientSyncService
             ]);
 
             // Log the response status and body
-            $this->logger->debug("API Response Status: " . $response->getStatusCode());
-            $this->logger->debug("API Response Body: " . $response->getBody());
+            $this->logger->debug("     :: Raspuns api Code    :: " . $response->getStatusCode());
+            $this->logger->debug("     :: Raspuns Body        :: " . $response->getBody());
 
             if ($response->getStatusCode() >= 400) {
                 throw new \Exception("Update API returned error status: " . $response->getStatusCode() . " - " . $response->getBody());
