@@ -34,10 +34,10 @@ class CustomAppointmentRestController
                     $value = mb_convert_encoding($value, 'UTF-8', 'auto');
                 }
             });
-            // Convert binary uuid to string if present
-            if (isset($row['uuid'])) {
-                $row['uuid'] = UuidRegistry::uuidToString($row['uuid']);
-            }
+            // Convert binary uuid to string if present and valid
+            $row['uuid'] = (!empty($row['uuid']) && strlen($row['uuid']) === 16)
+                ? UuidRegistry::uuidToString($row['uuid'])
+                : null;
             $appointments[] = $row;
         }
         return $appointments;
