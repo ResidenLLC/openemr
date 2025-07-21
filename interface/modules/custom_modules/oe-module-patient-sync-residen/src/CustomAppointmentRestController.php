@@ -1,6 +1,8 @@
 <?php
 namespace OpenEMR\Modules\PatientSync;
 
+use OpenEMR\Common\Uuid\UuidRegistry;
+
 class CustomAppointmentRestController
 {
     public function getAllFiltered($facility, $provider, $start_date, $end_date)
@@ -32,6 +34,10 @@ class CustomAppointmentRestController
                     $value = mb_convert_encoding($value, 'UTF-8', 'auto');
                 }
             });
+            // Convert binary uuid to string if present
+            if (isset($row['uuid'])) {
+                $row['uuid'] = UuidRegistry::uuidToString($row['uuid']);
+            }
             $appointments[] = $row;
         }
         return $appointments;
