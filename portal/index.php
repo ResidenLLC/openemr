@@ -331,7 +331,7 @@ if (!(isset($_SESSION['password_update']) || (!empty($GLOBALS['portal_two_pass_r
 <!DOCTYPE html>
 <html>
 <head>
-    <title><?php echo xlt('Patient Portal Login'); ?></title>
+    <title><?php echo xlt('Patient Portal'); ?></title>
     <?php
     Header::setupHeader(['no_main-theme', 'portal-theme', 'datetime-picker']);
     ?>
@@ -601,7 +601,7 @@ if (!(isset($_SESSION['password_update']) || (!empty($GLOBALS['portal_two_pass_r
                     <?php } ?>
                 <?php } ?>
             <?php } ?>
-            <legend class="text-center bg-light text-dark pt-2 py-1"><h2><?php echo $GLOBALS['openemr_name'] . ' ' . xlt('Portal Login'); ?></h2></legend>
+            <legend class="text-center bg-light text-dark pt-2 py-1"><h2><?php echo xlt('Portal Login'); ?></h2></legend>
             <form class="mx-1" action="get_patient_info.php" method="POST" onsubmit="return process()">
                 <?php if (isset($redirectUrl)) { ?>
                     <input id="redirect" type="hidden" name="redirect" value="<?php echo attr($redirectUrl); ?>" />
@@ -626,7 +626,7 @@ if (!(isset($_SESSION['password_update']) || (!empty($GLOBALS['portal_two_pass_r
                         <label for="passaddon"><?php echo xlt('E-Mail Address') ?></label>
                         <input class="form-control" name="passaddon" id="passaddon" type="email" autocomplete="none" />
                     </div>
-                <?php } ?>
+                <!-- <?php } ?>
                 <?php if ($GLOBALS['language_menu_login']) { ?>
                     <?php if (count($result3) != 1) { ?>
                 <div class="form-group">
@@ -656,7 +656,7 @@ if (!(isset($_SESSION['password_update']) || (!empty($GLOBALS['portal_two_pass_r
                     </select>
                     <?php }
                 } ?>
-                </div>
+                </div> -->
                 <div class="col col-md col-sm">
                     <button class="btn btn-success btn-block" type="submit"><?php echo xlt('Log In'); ?></button>
                     <?php if (!empty($GLOBALS['portal_onsite_two_register']) && !empty($GLOBALS['google_recaptcha_site_key']) && !empty($GLOBALS['google_recaptcha_secret_key'])) { ?>

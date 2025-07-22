@@ -1859,7 +1859,7 @@ class Display extends base
         global $rcb_provider;
 
         //let's get all the recalls the user requests, or if no dates set use defaults
-        $from_date = (!empty($_REQUEST['form_from_date'])) ? DateToYYYYMMDD($_REQUEST['form_from_date']) : date('Y-m-d', strtotime('-6 months'));
+        $from_date = (!empty($_REQUEST['form_from_date'])) ? DateToYYYYMMDD($_REQUEST['form_from_date']) : date('Y-m-d', strtotime('0 days'));
         //limit date range for initial Board to keep us sane and not tax the server too much
 
         if (substr($GLOBALS['ptkr_end_date'], 0, 1) == 'Y') {
@@ -1875,7 +1875,7 @@ class Display extends base
         $to_date = date('Y-m-d', $ptkr_future_time);
         //prevSetting to_date?
 
-        $to_date = (!empty($_REQUEST['form_to_date'])) ? DateToYYYYMMDD($_REQUEST['form_to_date']) : $to_date;
+        $to_date = (!empty($_REQUEST['form_to_date'])) ? DateToYYYYMMDD($_REQUEST['form_to_date']) : date('Y-m-d', strtotime('+6 months'));
 
         $recalls = $this->get_recalls($from_date, $to_date);
 
