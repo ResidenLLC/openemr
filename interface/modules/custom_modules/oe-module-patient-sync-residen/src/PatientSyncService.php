@@ -98,8 +98,8 @@ class PatientSyncService
             ]);
 
             // Log the response status and body
-            $this->logger->debug("     :: Raspuns api Code    :: " . $response->getStatusCode());
-            $this->logger->debug("     :: Raspuns Body        :: " . $response->getBody());
+            //$this->logger->debug("     :: Raspuns api Code    :: " . $response->getStatusCode());
+            //$this->logger->debug("     :: Raspuns Body        :: " . $response->getBody());
 
             if ($response->getStatusCode() >= 400) {
                 throw new \Exception("Update API returned error status: " . $response->getStatusCode() . " - " . $response->getBody());
@@ -141,7 +141,6 @@ class PatientSyncService
             return $value;
         }, $patientData);
 
-        // Convert OpenEMR patient data format to your API format
         return [
             'id' => $sanitizedData['id'] ?? '',
             'pid' => $sanitizedData['pid'] ?? '',
