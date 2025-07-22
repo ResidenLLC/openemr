@@ -14,6 +14,13 @@ Render the language list, label and selectbox
 #}
 {% if displayLanguage %}
 {% block display_languages %}
+{# Florin: commented this out because there is a bug in Admin/Config/All Languages Allowed
+   - if you uncheck that option, some of the OpenEMR pages break
+   - so it's easier just to hide the language drop-down in the UI
+   - this was also done for the portal login page 
+#}
+<!--
+
 <div class="{{ language_container_class_list|default(['form-group', 'row'])|join(' ') }}">
     <label for="language" class="{{ srOnly }} {{ language_label_class_list|default(['col-form-label', 'col-sm-4'])|join(' ') }}">{{ "Language"|xlt }}</label>
     <div class="col">
@@ -25,5 +32,7 @@ Render the language list, label and selectbox
         </select>
     </div>
 </div>
+
+-->
 {% endblock %}
 {% endif %}
