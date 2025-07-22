@@ -143,7 +143,8 @@ class PatientSyncService
 
         // Convert OpenEMR patient data format to your API format
         return [
-            'id' => $sanitizedData['pid'] ?? '',
+            'id' => $sanitizedData['id'] ?? '',
+            'pid' => $sanitizedData['pid'] ?? '',
             'uuid' => UuidRegistry::uuidToString($this->patientService->getUuid($sanitizedData['pid'])),
             'first_name' => $sanitizedData['fname'] ?? '',
             'last_name' => $sanitizedData['lname'] ?? '',
