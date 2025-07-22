@@ -1859,7 +1859,7 @@ class Display extends base
         global $rcb_provider;
 
         //let's get all the recalls the user requests, or if no dates set use defaults
-        $from_date = (!empty($_REQUEST['form_from_date'])) ? DateToYYYYMMDD($_REQUEST['form_from_date']) : date('Y-m-d', strtotime('-6 months'));
+        $from_date = (!empty($_REQUEST['form_from_date'])) ? DateToYYYYMMDD($_REQUEST['form_from_date']) : date('Y-m-d', strtotime('0 days'));
         //limit date range for initial Board to keep us sane and not tax the server too much
 
         if (substr($GLOBALS['ptkr_end_date'], 0, 1) == 'Y') {
@@ -1875,7 +1875,7 @@ class Display extends base
         $to_date = date('Y-m-d', $ptkr_future_time);
         //prevSetting to_date?
 
-        $to_date = (!empty($_REQUEST['form_to_date'])) ? DateToYYYYMMDD($_REQUEST['form_to_date']) : $to_date;
+        $to_date = (!empty($_REQUEST['form_to_date'])) ? DateToYYYYMMDD($_REQUEST['form_to_date']) : date('Y-m-d', strtotime('+6 months'));
 
         $recalls = $this->get_recalls($from_date, $to_date);
 
@@ -2207,11 +2207,11 @@ class Display extends base
                 </span>';
             echo '</td>';
 
-            echo '  <td class="divTableCell text-left msg_resp">';
+            echo '  <td class="divTableCell text-left" style="padding: 0.75rem 0.25rem;">';
             //    if phone call made show each in progress
-            echo '<textarea onblur="process_this(\'notes\',\'' . attr($recall['pid']) . '\',\'' . attr($recall['r_ID']) . '\');" name="msg_notes" id="msg_notes_' . attr($recall['pid']) . '" style="width:90%;height:30px;">' . nl2br(text($recall['NOTES'])) . '</textarea>';
+            echo '<textarea rows="3" cols="30" onblur="process_this(\'notes\',\'' . attr($recall['pid']) . '\',\'' . attr($recall['r_ID']) . '\');" name="msg_notes" id="msg_notes_' . attr($recall['pid']) . '">' . nl2br(text($recall['NOTES'])) . '</textarea>';
             echo '</td>';
-            echo '  <td class="divTableCell text-left msg_resp">
+            echo '  <td class="divTableCell text-left" style="min-width: 270px; padding-left: 0.25rem;">
             <i class="top_right_corner fa fa-times" onclick="delete_Recall(\'' . attr($recall['pid']) . '\',\'' . attr($recall['r_ID']) . '\')"></i> ';
             echo $show['progression'];
 
