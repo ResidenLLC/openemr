@@ -626,10 +626,10 @@ if (!(isset($_SESSION['password_update']) || (!empty($GLOBALS['portal_two_pass_r
                         <label for="passaddon"><?php echo xlt('E-Mail Address') ?></label>
                         <input class="form-control" name="passaddon" id="passaddon" type="email" autocomplete="none" />
                     </div>
-                <!-- <?php } ?>
+                <?php } ?>
                 <?php if ($GLOBALS['language_menu_login']) { ?>
                     <?php if (count($result3) != 1) { ?>
-                <div class="form-group">
+                <!-- <div class="form-group">
                     <label for="selLanguage"><?php echo xlt('Language'); ?></label>
                     <select class="form-control" id="selLanguage" name="languageChoice">
                         <?php
