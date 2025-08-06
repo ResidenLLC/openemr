@@ -3,6 +3,7 @@ namespace OpenEMR\Modules\PatientSync;
 
 use Exception;
 use OpenEMR\RestControllers\RestControllerHelper;
+use OpenEMR\Services\PatientTrackerService;
 
 /**
  * @OA\Put(
@@ -115,8 +116,9 @@ class AppointmentRestController
             $encounter = $this->findTodaysEncounter($pid, $data['pc_eventDate']);
             
             if ($encounter) {
-                // Use manage_tracker_status to create the linkage
-                manage_tracker_status(
+                // Use PatientTrackerService to create the linkage
+                $trackerService = new PatientTrackerService();
+                $trackerService->manage_tracker_status(
                     $data['pc_eventDate'], 
                     $data['pc_startTime'], 
                     $eid, 
