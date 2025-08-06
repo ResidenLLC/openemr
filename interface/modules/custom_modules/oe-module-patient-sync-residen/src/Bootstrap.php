@@ -108,9 +108,9 @@ class Bootstrap
             $this->registerPatientModified();
             $this->registerPaymentApi();
             $this->registerApiScopes();
+            $this->registerAppointmentUpdateApi();
             $this->registerAppointmentCategoryApi();
             $this->registerAppointmentStatusApi();
-            $this->registerAppointmentUpdateApi();
             $this->registerAppointmentRoomApi();
             $this->registerAppointmentApiOverride();
         }
