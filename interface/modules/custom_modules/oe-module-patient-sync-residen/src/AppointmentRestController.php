@@ -4,6 +4,7 @@ namespace OpenEMR\Modules\PatientSync;
 use Exception;
 use OpenEMR\RestControllers\RestControllerHelper;
 use OpenEMR\Services\PatientTrackerService;
+use OpenEMR\Services\AppointmentService;
 
 /**
  * @OA\Put(
@@ -87,8 +88,8 @@ class AppointmentRestController
         try {
             $result = sqlStatement($sql, $params);
             
-            // Check if we need to create encounter linkage for "arrived" status on today's date
-            if ($data['pc_eventDate'] == date('Y-m-d') && $data['pc_apptstatus'] == '@') {
+            // Check if we need to create encounter linkage for check-in status on today's date
+            if ($data['pc_eventDate'] == date('Y-m-d') && AppointmentService::isCheckInStatus($data['pc_apptstatus'])) {
                 $this->createEncounterLinkage($pid, $eid, $data);
             }
             
@@ -107,7 +108,7 @@ class AppointmentRestController
     }
 
     /**
-     * Create linkage between appointment and today's encounter when status is "arrived"
+     * Create linkage between appointment and today's encounter when status is a check-in status
      */
     private function createEncounterLinkage($pid, $eid, $data)
     {
@@ -124,7 +125,7 @@ class AppointmentRestController
                     $eid, 
                     $pid, 
                     $_SESSION["authUser"] ?? 'api_user', 
-                    '@', 
+                    $data['pc_apptstatus'], 
                     $data['pc_room'] ?? '', 
                     $encounter
                 );
