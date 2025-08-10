@@ -3,6 +3,8 @@ namespace OpenEMR\Modules\PatientSync;
 
 use Exception;
 use OpenEMR\RestControllers\RestControllerHelper;
+use OpenEMR\Services\PatientTrackerService;
+use OpenEMR\Services\AppointmentService;
 
 /**
  * @OA\Put(
@@ -85,6 +87,12 @@ class AppointmentRestController
         $sql = "UPDATE openemr_postcalendar_events SET ".implode(", ", $set)." WHERE pc_eid = ? AND pc_pid = ?";
         try {
             $result = sqlStatement($sql, $params);
+            
+            // Check if we need to create encounter linkage for check-in status on today's date
+            if ($data['pc_eventDate'] == date('Y-m-d') && AppointmentService::isCheckInStatus($data['pc_apptstatus'])) {
+                $this->createEncounterLinkage($pid, $eid, $data);
+            }
+            
         } catch (\Exception $e) {
             http_response_code(400);
             return [
@@ -97,5 +105,48 @@ class AppointmentRestController
             'eid' => $eid,
             'pid' => $pid
         ];
+    }
+
+    /**
+     * Create linkage between appointment and today's encounter when status is a check-in status
+     */
+    private function createEncounterLinkage($pid, $eid, $data)
+    {
+        try {
+            // Find existing encounter for today
+            $encounter = $this->findTodaysEncounter($pid, $data['pc_eventDate']);
+            
+            if ($encounter) {
+                // Use PatientTrackerService to create the linkage
+                $trackerService = new PatientTrackerService();
+                $trackerService->manage_tracker_status(
+                    $data['pc_eventDate'], 
+                    $data['pc_startTime'], 
+                    $eid, 
+                    $pid, 
+                    $_SESSION["authUser"] ?? 'api_user', 
+                    $data['pc_apptstatus'], 
+                    $data['pc_room'] ?? '', 
+                    $encounter
+                );
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail the appointment update
+            error_log("Failed to create encounter linkage: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Find existing encounter for the patient on the given date
+     */
+    private function findTodaysEncounter($pid, $date)
+    {
+        $sql = "SELECT encounter FROM form_encounter 
+                WHERE pid = ? AND date = ? 
+                ORDER BY encounter DESC LIMIT 1";
+        
+        $result = sqlQuery($sql, array($pid, $date));
+        
+        return $result['encounter'] ?? null;
     }
 }
