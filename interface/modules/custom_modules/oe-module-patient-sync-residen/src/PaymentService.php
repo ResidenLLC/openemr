@@ -42,7 +42,7 @@ class PaymentService extends BaseService
 
             $currentDateTime = date('Y-m-d H:i:s');
             $currentDate = date('Y-m-d');
-            
+
             // First create ar_session record
             $sessionId = sqlInsert(
                 "INSERT INTO ar_session SET
@@ -129,6 +129,7 @@ class PaymentService extends BaseService
             );
 
             if (!$arActivity) {
+                var_dump($arActivity);
                 return ['success' => false, 'error' => 'Failed to insert ar_activity'];
             }
 
