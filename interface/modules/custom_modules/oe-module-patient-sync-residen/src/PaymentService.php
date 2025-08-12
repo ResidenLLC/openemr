@@ -110,7 +110,7 @@ class PaymentService extends BaseService
                 payer_type = ?,
                 post_time = ?,
                 post_user = ?,
-                session_ids = ?,
+                session_id = ?,
                 pay_amount = ?,
                 adj_amount = ?,
                 memo = '',
