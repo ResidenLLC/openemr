@@ -128,10 +128,6 @@ class PaymentService extends BaseService
                 )
             );
 
-            if (!$arActivity) {
-                var_dump($arActivity);
-                return ['success' => false, 'error' => 'Failed to insert ar_activity'];
-            }
 
             return [
                 'success' => true,
