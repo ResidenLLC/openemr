@@ -34,14 +34,9 @@ class PaymentService extends BaseService
                 return ['success' => false, 'error' => "Patient with ID $pid not found"];
             }
 
-            // Validate encounter exists and belongs to patient
-            $encounterResult = $this->encounterService->getEncounterById($encounterId);
-            if (!$encounterResult->hasData()) {
-                return ['success' => false, 'error' => "Encounter with ID $encounterId not found"];
-            }
-
-            $encounter = $encounterResult->getData()[0];
-            if ($encounter['pid'] != $pid) {
+            // Validate encounter exists and belongs to patient (strict check by pid + eid)
+            $encounter = $this->encounterService->getOneByPidEid($pid, $encounterId);
+            if (empty($encounter)) {
                 return ['success' => false, 'error' => "Encounter $encounterId does not belong to patient $pid"];
             }
 
